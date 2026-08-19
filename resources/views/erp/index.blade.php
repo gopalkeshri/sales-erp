@@ -1185,7 +1185,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($topPerformers as $rep)
+                                    @forelse($topPerformers as $rep)
                                     <tr>
                                         <td>
                                             <div style="font-weight: 600; color: white;">{{ $rep['name'] }}</div>
@@ -1195,7 +1195,13 @@
                                         <td><span class="badge badge-success">{{ $rep['deals_won'] }} Won</span></td>
                                         <td style="font-weight: 700; color: #34d399;">${{ number_format($rep['total_sales'], 2) }}</td>
                                     </tr>
-                                    @endforeach
+                                    @empty
+                                    <tr>
+                                        <td colspan="4" style="text-align: center; padding: 24px; color: #64748b;">
+                                            No closed sales recorded yet. Leaderboard updates automatically upon winning deals.
+                                        </td>
+                                    </tr>
+                                    @endforelse
                                 </tbody>
                             </table>
                         </div>
@@ -1209,7 +1215,7 @@
                             </div>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 12px; max-height: 280px; overflow-y: auto;">
-                            @foreach($activities as $act)
+                            @forelse($activities as $act)
                             <div style="display: flex; gap: 12px; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color);">
                                 <div style="width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: rgba(99,102,241,0.2); color: var(--primary); flex-shrink: 0;">
                                     <i data-lucide="{{ $act->type === 'call' ? 'phone' : ($act->type === 'email' ? 'mail' : ($act->type === 'meeting' ? 'users' : 'check-square')) }}" style="width: 16px; height: 16px;"></i>
@@ -1222,7 +1228,12 @@
                                     </div>
                                 </div>
                             </div>
-                            @endforeach
+                            @empty
+                            <div style="text-align: center; padding: 32px 10px; color: #64748b; font-size: 13px;">
+                                <i data-lucide="clock" style="width: 24px; height: 24px; margin-bottom: 6px; opacity: 0.5;"></i>
+                                <div>No recent system activity recorded.</div>
+                            </div>
+                            @endforelse
                         </div>
                     </div>
                 </div>
@@ -1255,7 +1266,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($leads as $lead)
+                                @forelse($leads as $lead)
                                 <tr>
                                     <td>
                                         <div style="font-weight: 700; color: white;">{{ $lead->title }}</div>
@@ -1291,7 +1302,15 @@
                                         @endif
                                     </td>
                                 </tr>
-                                @endforeach
+                                @empty
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 36px; color: #64748b;">
+                                        <i data-lucide="target" style="width: 28px; height: 28px; margin-bottom: 8px; opacity: 0.5;"></i>
+                                        <div style="font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">No Leads in Pipeline</div>
+                                        <div>Click <strong>Add New Lead</strong> above to capture and qualify inbound prospects.</div>
+                                    </td>
+                                </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
@@ -1338,7 +1357,7 @@
                         </div>
 
                         <div class="kanban-cards">
-                            @foreach($stageOpps as $opp)
+                            @forelse($stageOpps as $opp)
                             <div class="deal-card" onclick="openDealDetailModal({{ $opp->id }}, '{{ addslashes($opp->title) }}', {{ $opp->amount }}, '{{ $opp->stage }}', '{{ addslashes($opp->customer->company_name ?? 'N/A') }}', {{ $opp->probability }})">
                                 <div class="deal-title">{{ $opp->title }}</div>
                                 <div class="deal-customer">
@@ -1354,7 +1373,11 @@
                                     <div class="deal-rep">{{ $opp->assignedUser->name ?? 'Rep' }}</div>
                                 </div>
                             </div>
-                            @endforeach
+                            @empty
+                            <div style="text-align: center; padding: 24px 8px; color: #475569; font-size: 12px; border: 1px dashed var(--border-color); border-radius: 8px;">
+                                No deals in {{ strtolower($sInfo['title']) }}
+                            </div>
+                            @endforelse
                         </div>
                     </div>
                     @endforeach
@@ -1386,9 +1409,8 @@
                                     <th>Total Value</th>
                                     <th>Actions</th>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($quotes as $q)
+                            <                            <tbody>
+                                @forelse($quotes as $q)
                                 <tr>
                                     <td style="font-weight: 700; color: white;">{{ $q->quote_number }}</td>
                                     <td>{{ $q->customer->company_name ?? 'N/A' }}</td>
@@ -1413,7 +1435,15 @@
                                         </div>
                                     </td>
                                 </tr>
-                                @endforeach
+                                @empty
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 36px; color: #64748b;">
+                                        <i data-lucide="file-text" style="width: 28px; height: 28px; margin-bottom: 8px; opacity: 0.5;"></i>
+                                        <div style="font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">No Quotes Generated</div>
+                                        <div>Click <strong>Generate Quote</strong> above to prepare a pricing proposal.</div>
+                                    </td>
+                                </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
@@ -1444,7 +1474,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($orders as $order)
+                                @forelse($orders as $order)
                                 <tr>
                                     <td style="font-weight: 700; color: white;">{{ $order->order_number }}</td>
                                     <td>{{ $order->customer->company_name ?? 'N/A' }}</td>
@@ -1476,7 +1506,15 @@
                                         @endif
                                     </td>
                                 </tr>
-                                @endforeach
+                                @empty
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 36px; color: #64748b;">
+                                        <i data-lucide="shopping-cart" style="width: 28px; height: 28px; margin-bottom: 8px; opacity: 0.5;"></i>
+                                        <div style="font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">No Sales Orders Recorded</div>
+                                        <div>Accepted proposals and customer orders will appear here for fulfillment tracking.</div>
+                                    </td>
+                                </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
@@ -1558,7 +1596,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($invoices as $inv)
+                                @forelse($invoices as $inv)
                                 <tr>
                                     <td style="font-weight: 700; color: white;">{{ $inv->invoice_number }}</td>
                                     <td>{{ $inv->customer->company_name ?? 'N/A' }}</td>
@@ -1589,7 +1627,15 @@
                                         </div>
                                     </td>
                                 </tr>
-                                @endforeach
+                                @empty
+                                <tr>
+                                    <td colspan="8" style="text-align: center; padding: 36px; color: #64748b;">
+                                        <i data-lucide="receipt" style="width: 28px; height: 28px; margin-bottom: 8px; opacity: 0.5;"></i>
+                                        <div style="font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">No Invoices Billed</div>
+                                        <div>Click <strong>Generate Direct Invoice</strong> or bill confirmed sales orders.</div>
+                                    </td>
+                                </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
@@ -1688,7 +1734,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($inventory as $invItem)
+                                @forelse($inventory as $invItem)
                                 <tr>
                                     <td style="font-weight: 700; color: var(--accent-cyan);">{{ $invItem->product->sku ?? 'N/A' }}</td>
                                     <td style="font-weight: 600; color: white;">{{ $invItem->product->name ?? 'N/A' }}</td>
@@ -1716,7 +1762,15 @@
                                         </div>
                                     </td>
                                 </tr>
-                                @endforeach
+                                @empty
+                                <tr>
+                                    <td colspan="8" style="text-align: center; padding: 36px; color: #64748b;">
+                                        <i data-lucide="boxes" style="width: 28px; height: 28px; margin-bottom: 8px; opacity: 0.5;"></i>
+                                        <div style="font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">Inventory Empty</div>
+                                        <div>Click <strong>Add Product / SKU</strong> to catalog products and inward initial stock.</div>
+                                    </td>
+                                </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
@@ -1751,7 +1805,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($commissions as $comm)
+                                @forelse($commissions as $comm)
                                 <tr>
                                     <td style="font-weight: 700; color: white;">{{ $comm->user->name ?? 'Rep' }}</td>
                                     <td><span class="badge badge-info">{{ $comm->period }} ({{ $comm->period_type }})</span></td>
@@ -1774,7 +1828,15 @@
                                         @endif
                                     </td>
                                 </tr>
-                                @endforeach
+                                @empty
+                                <tr>
+                                    <td colspan="8" style="text-align: center; padding: 36px; color: #64748b;">
+                                        <i data-lucide="calculator" style="width: 28px; height: 28px; margin-bottom: 8px; opacity: 0.5;"></i>
+                                        <div style="font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">No Commission Cycles Processed</div>
+                                        <div>Click <strong>Calculate Month Commission</strong> to run sales representative payout engine.</div>
+                                    </td>
+                                </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
@@ -1808,7 +1870,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($customers as $c)
+                                @forelse($customers as $c)
                                 <tr>
                                     <td>
                                         <div style="font-weight: 700; color: white;">{{ $c->company_name }}</div>
@@ -1827,7 +1889,15 @@
                                     <td><span class="badge badge-neutral">{{ strtoupper(str_replace('_', ' ', $c->payment_terms)) }}</span></td>
                                     <td>{{ $c->assignedUser->name ?? 'Rep' }}</td>
                                 </tr>
-                                @endforeach
+                                @empty
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 36px; color: #64748b;">
+                                        <i data-lucide="building-2" style="width: 28px; height: 28px; margin-bottom: 8px; opacity: 0.5;"></i>
+                                        <div style="font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">No Customer Accounts Registered</div>
+                                        <div>Click <strong>Add New Account</strong> above to onboard enterprise accounts.</div>
+                                    </td>
+                                </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
@@ -1873,14 +1943,20 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($territoryPerformance as $t)
+                                    @forelse($territoryPerformance as $t)
                                     <tr>
                                         <td style="font-weight: 700; color: white;">{{ $t['name'] }}</td>
                                         <td>{{ $t['region'] }}</td>
                                         <td>{{ $t['customers_count'] }}</td>
                                         <td style="font-weight: 700; color: #34d399;">${{ number_format($t['total_sales'], 2) }}</td>
                                     </tr>
-                                    @endforeach
+                                    @empty
+                                    <tr>
+                                        <td colspan="4" style="text-align: center; padding: 24px; color: #64748b;">
+                                            No territory sales data yet.
+                                        </td>
+                                    </tr>
+                                    @endforelse
                                 </tbody>
                             </table>
                         </div>
@@ -1904,20 +1980,26 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($productPerformance as $prod)
+                                    @forelse($productPerformance as $prod)
                                     <tr>
                                         <td style="font-weight: 700; color: white;">{{ $prod['name'] }}</td>
                                         <td>{{ $prod['category'] }}</td>
                                         <td>{{ $prod['units_sold'] }} units</td>
                                         <td style="font-weight: 700; color: #34d399;">${{ number_format($prod['revenue_generated'], 2) }}</td>
                                     </tr>
-                                    @endforeach
+                                    @empty
+                                    <tr>
+                                        <td colspan="4" style="text-align: center; padding: 24px; color: #64748b;">
+                                            No product sales data yet.
+                                        </td>
+                                    </tr>
+                                    @endforelse
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
-            </div>
+            </div>      </div>
 
             <!-- TAB 11: GENERAL SETTINGS -->
             <div id="tab-settings" class="tab-pane">

@@ -24,6 +24,7 @@ class WebSessionApiTest extends TestCase
     {
         parent::setUp();
         $this->seed();
+        $this->seed(\Database\Seeders\DemoDataSeeder::class);
     }
 
     public function test_web_session_can_perform_all_11_module_actions(): void

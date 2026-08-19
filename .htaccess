@@ -4,8 +4,8 @@
     # Prevent directory browsing
     Options -Indexes
 
-    # Block direct web access to sensitive environment and configuration files
-    <FilesMatch "^\.env|composer\.(json|lock)|package\.(json|lock)|phpunit\.xml|artisan|\.gitignore">
+    # Block direct web access to sensitive environment, config, and script files
+    <FilesMatch "^\.env|composer\.(json|lock)|package\.(json|lock)|phpunit\.xml|artisan|deploy\.sh|\.gitignore">
         Order allow,deny
         Deny from all
     </FilesMatch>

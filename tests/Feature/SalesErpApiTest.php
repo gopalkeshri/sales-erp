@@ -22,6 +22,7 @@ class SalesErpApiTest extends TestCase
     {
         parent::setUp();
         $this->seed();
+        $this->seed(\Database\Seeders\DemoDataSeeder::class);
     }
 
     public function test_auth_login_and_me_endpoints(): void

@@ -57,10 +57,11 @@ class ProductAndWarehouseSeeder extends Seeder
             ],
         ];
 
-        $createdWarehouses = [];
         foreach ($warehouses as $wh) {
-            $createdWarehouses[] = Warehouse::create($wh);
+            Warehouse::firstOrCreate(['code' => $wh['code']], $wh);
         }
+
+        $allWarehouses = Warehouse::all();
 
         // 2. Products
         $products = [
@@ -157,19 +158,20 @@ class ProductAndWarehouseSeeder extends Seeder
         ];
 
         foreach ($products as $pData) {
-            $product = Product::create($pData);
+            $product = Product::firstOrCreate(['sku' => $pData['sku']], $pData);
 
             // Populate initial inventory in warehouses
             if ($product->type === 'product') {
-                foreach ($createdWarehouses as $index => $wh) {
-                    $qty = ($index === 0) ? rand(25, 60) : rand(5, 30);
-                    Inventory::create([
-                        'product_id' => $product->id,
-                        'warehouse_id' => $wh->id,
-                        'quantity' => $qty,
-                        'reserved_quantity' => rand(0, 3),
-                        'last_restocked_at' => now()->subDays(rand(1, 20)),
-                    ]);
+                foreach ($allWarehouses as $index => $wh) {
+                    $qty = ($index === 0) ? rand(25, 60) : rand(10, 30);
+                    Inventory::firstOrCreate(
+                        ['product_id' => $product->id, 'warehouse_id' => $wh->id],
+                        [
+                            'quantity' => $qty,
+                            'reserved_quantity' => rand(0, 2),
+                            'last_restocked_at' => now()->subDays(rand(1, 20)),
+                        ]
+                    );
 
                     InventoryTransaction::create([
                         'product_id' => $product->id,
