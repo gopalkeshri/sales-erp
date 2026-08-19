@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\TerritoryController;
 use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\SettingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -191,5 +192,14 @@ Route::middleware(['auth:sanctum,web', 'activity.log'])->group(function () {
         Route::get('/pipeline-chart', [DashboardController::class, 'pipelineChart']);
         Route::get('/activities', [DashboardController::class, 'activities']);
         Route::get('/tasks', [DashboardController::class, 'tasks']);
+    });
+
+    // 15. General Settings Module
+    Route::prefix('settings')->group(function () {
+        Route::get('/', [SettingController::class, 'index']);
+        Route::post('/', [SettingController::class, 'update']);
+        Route::put('/', [SettingController::class, 'update']);
+        Route::post('/reset', [SettingController::class, 'reset']);
+        Route::post('/cache-clear', [SettingController::class, 'clearCache']);
     });
 });

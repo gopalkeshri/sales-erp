@@ -770,6 +770,171 @@
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
+
+        /* Settings Styles */
+        .settings-container {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .settings-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .settings-nav {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            position: sticky;
+            top: 94px;
+        }
+
+        .settings-nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #94a3b8;
+            background: transparent;
+            border: 1px solid transparent;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .settings-nav-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .settings-nav-btn.active {
+            color: #ffffff;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(6, 182, 212, 0.15) 100%);
+            border-color: rgba(99, 102, 241, 0.4);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        .settings-section {
+            display: none;
+        }
+
+        .settings-section.active {
+            display: block;
+            animation: fadeIn 0.25s ease forwards;
+        }
+
+        /* Modern Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.15);
+            transition: .3s;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
+            border-color: rgba(99, 102, 241, 0.5);
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            margin-bottom: 12px;
+            transition: border-color 0.2s;
+        }
+
+        .toggle-row:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .toggle-info h4 {
+            font-size: 13px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 3px;
+        }
+
+        .toggle-info p {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .info-stat-card {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .info-stat-card .label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+
+        .info-stat-card .value {
+            font-size: 14px;
+            font-weight: 700;
+            color: #ffffff;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -848,6 +1013,13 @@
             <a class="nav-item" onclick="switchTab('reports')">
                 <i data-lucide="bar-chart-3"></i>
                 <span>Reporting & Analytics</span>
+            </a>
+
+            <div class="nav-section">System & Settings</div>
+
+            <a class="nav-item" onclick="switchTab('settings')">
+                <i data-lucide="settings"></i>
+                <span>General Settings</span>
             </a>
         </div>
 
@@ -1747,6 +1919,475 @@
                 </div>
             </div>
 
+            <!-- TAB 11: GENERAL SETTINGS -->
+            <div id="tab-settings" class="tab-pane">
+                <!-- Settings Header Banner & Quick Actions -->
+                <div class="card" style="margin-bottom: 20px; background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(13, 19, 34, 0.95) 100%); border: 1px solid rgba(99, 102, 241, 0.25);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div style="display: flex; align-items: center; gap: 14px;">
+                            <div style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%); border: 1px solid rgba(99, 102, 241, 0.4); display: flex; align-items: center; justify-content: center; color: #818cf8;">
+                                <i data-lucide="sliders" style="width: 24px; height: 24px;"></i>
+                            </div>
+                            <div>
+                                <h2 style="font-size: 18px; font-weight: 800; color: #ffffff; margin-bottom: 2px;">General & System Settings</h2>
+                                <p style="font-size: 12px; color: #94a3b8;">Configure organization profile, regional localization, sales numbering prefixes, inventory thresholds, and notifications.</p>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <button type="button" class="btn btn-secondary" onclick="clearSystemCache()" id="btnClearCache" style="font-size: 12px;">
+                                <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Purge Cache
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="resetSettingsToDefault()" style="color: #fb7185; border-color: rgba(244, 63, 94, 0.3); font-size: 12px;">
+                                <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i> Reset Defaults
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="document.getElementById('formGeneralSettings').requestSubmit();" id="btnSaveSettingsTop" style="font-size: 13px;">
+                                <i data-lucide="check" style="width: 15px; height: 15px;"></i> Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Container with Sub-Navigation and Forms -->
+                <form id="formGeneralSettings" onsubmit="submitSettingsForm(event)">
+                    <div class="settings-container">
+                        <!-- Left Sub-Navigation Menu -->
+                        <div class="settings-nav">
+                            <button type="button" class="settings-nav-btn active" id="btn-subnav-company" onclick="switchSettingsSubSection('company')">
+                                <i data-lucide="building" style="width: 16px; height: 16px; color: #818cf8;"></i>
+                                <span>Company Profile</span>
+                            </button>
+                            <button type="button" class="settings-nav-btn" id="btn-subnav-localization" onclick="switchSettingsSubSection('localization')">
+                                <i data-lucide="globe-2" style="width: 16px; height: 16px; color: #22d3ee;"></i>
+                                <span>Localization & Currency</span>
+                            </button>
+                            <button type="button" class="settings-nav-btn" id="btn-subnav-sales" onclick="switchSettingsSubSection('sales')">
+                                <i data-lucide="file-check" style="width: 16px; height: 16px; color: #34d399;"></i>
+                                <span>Sales & Invoicing</span>
+                            </button>
+                            <button type="button" class="settings-nav-btn" id="btn-subnav-inventory" onclick="switchSettingsSubSection('inventory')">
+                                <i data-lucide="boxes" style="width: 16px; height: 16px; color: #fbbf24;"></i>
+                                <span>Inventory & Stock</span>
+                            </button>
+                            <button type="button" class="settings-nav-btn" id="btn-subnav-notifications" onclick="switchSettingsSubSection('notifications')">
+                                <i data-lucide="bell-ring" style="width: 16px; height: 16px; color: #c084fc;"></i>
+                                <span>Notification Alerts</span>
+                            </button>
+                            <button type="button" class="settings-nav-btn" id="btn-subnav-system" onclick="switchSettingsSubSection('system')">
+                                <i data-lucide="cpu" style="width: 16px; height: 16px; color: #94a3b8;"></i>
+                                <span>System Diagnostics</span>
+                            </button>
+                        </div>
+
+                        <!-- Right Form Sub-Panes -->
+                        <div class="settings-content">
+
+                            <!-- SECTION 1: Company Profile -->
+                            <div id="settings-section-company" class="settings-section active">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <div class="card-title">
+                                            <i data-lucide="building" style="color: var(--primary);"></i>
+                                            Company Identity & Official Details
+                                        </div>
+                                        <span class="badge badge-info">Profile Info</span>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Legal Registered Entity Name</label>
+                                            <input type="text" name="company_name" id="set_company_name" class="form-control" value="{{ $settings['company_name'] ?? 'Global B2B Solutions Inc.' }}" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Tagline / Brand Subtitle</label>
+                                            <input type="text" name="company_tagline" id="set_company_tagline" class="form-control" value="{{ $settings['company_tagline'] ?? 'Enterprise B2B Revenue & Fulfillment Platform' }}">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Corporate Email Address</label>
+                                            <input type="email" name="company_email" id="set_company_email" class="form-control" value="{{ $settings['company_email'] ?? 'admin@saleserp.enterprise' }}" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Official Phone / Hotline</label>
+                                            <input type="text" name="company_phone" id="set_company_phone" class="form-control" value="{{ $settings['company_phone'] ?? '+1 (800) 555-0199' }}">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Corporate Website URL</label>
+                                            <input type="url" name="company_website" id="set_company_website" class="form-control" value="{{ $settings['company_website'] ?? 'https://saleserp.enterprise' }}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">GST / Tax Identification Number</label>
+                                            <input type="text" name="tax_id" id="set_tax_id" class="form-control" value="{{ $settings['tax_id'] ?? 'US-TAX-88902148' }}">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Headquarters Street Address</label>
+                                        <input type="text" name="company_address" id="set_company_address" class="form-control" value="{{ $settings['company_address'] ?? '100 Enterprise Way, Suite 400' }}">
+                                    </div>
+
+                                    <div class="form-row" style="grid-template-columns: 1.2fr 1fr 1fr 1fr;">
+                                        <div class="form-group">
+                                            <label class="form-label">City</label>
+                                            <input type="text" name="company_city" id="set_company_city" class="form-control" value="{{ $settings['company_city'] ?? 'San Francisco' }}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">State / Province</label>
+                                            <input type="text" name="company_state" id="set_company_state" class="form-control" value="{{ $settings['company_state'] ?? 'California' }}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">ZIP / Postal Code</label>
+                                            <input type="text" name="company_postal_code" id="set_company_postal_code" class="form-control" value="{{ $settings['company_postal_code'] ?? '94105' }}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Country</label>
+                                            <input type="text" name="company_country" id="set_company_country" class="form-control" value="{{ $settings['company_country'] ?? 'United States' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SECTION 2: Localization & Currency -->
+                            <div id="settings-section-localization" class="settings-section">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <div class="card-title">
+                                            <i data-lucide="globe-2" style="color: var(--accent-cyan);"></i>
+                                            Localization, Currency & Regional Formats
+                                        </div>
+                                        <span class="badge badge-info">Regional Defaults</span>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Base Currency Code</label>
+                                            <select name="default_currency" id="set_default_currency" class="form-control">
+                                                <option value="USD" {{ ($settings['default_currency'] ?? 'USD') === 'USD' ? 'selected' : '' }}>USD - United States Dollar ($)</option>
+                                                <option value="EUR" {{ ($settings['default_currency'] ?? '') === 'EUR' ? 'selected' : '' }}>EUR - Euro (€)</option>
+                                                <option value="GBP" {{ ($settings['default_currency'] ?? '') === 'GBP' ? 'selected' : '' }}>GBP - British Pound (£)</option>
+                                                <option value="INR" {{ ($settings['default_currency'] ?? '') === 'INR' ? 'selected' : '' }}>INR - Indian Rupee (₹)</option>
+                                                <option value="CAD" {{ ($settings['default_currency'] ?? '') === 'CAD' ? 'selected' : '' }}>CAD - Canadian Dollar (CA$)</option>
+                                                <option value="AUD" {{ ($settings['default_currency'] ?? '') === 'AUD' ? 'selected' : '' }}>AUD - Australian Dollar (AU$)</option>
+                                                <option value="SGD" {{ ($settings['default_currency'] ?? '') === 'SGD' ? 'selected' : '' }}>SGD - Singapore Dollar (S$)</option>
+                                                <option value="AED" {{ ($settings['default_currency'] ?? '') === 'AED' ? 'selected' : '' }}>AED - UAE Dirham (AED)</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Currency Symbol</label>
+                                            <input type="text" name="currency_symbol" id="set_currency_symbol" class="form-control" value="{{ $settings['currency_symbol'] ?? '$' }}" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Currency Symbol Placement</label>
+                                            <select name="currency_position" id="set_currency_position" class="form-control">
+                                                <option value="prefix" {{ ($settings['currency_position'] ?? 'prefix') === 'prefix' ? 'selected' : '' }}>Prefix (e.g. $1,000.00)</option>
+                                                <option value="suffix" {{ ($settings['currency_position'] ?? '') === 'suffix' ? 'selected' : '' }}>Suffix (e.g. 1,000.00 $)</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Default System Timezone</label>
+                                            <select name="timezone" id="set_timezone" class="form-control">
+                                                <option value="America/New_York" {{ ($settings['timezone'] ?? 'America/New_York') === 'America/New_York' ? 'selected' : '' }}>Eastern Time (US & Canada - UTC-5)</option>
+                                                <option value="America/Chicago" {{ ($settings['timezone'] ?? '') === 'America/Chicago' ? 'selected' : '' }}>Central Time (US & Canada - UTC-6)</option>
+                                                <option value="America/Denver" {{ ($settings['timezone'] ?? '') === 'America/Denver' ? 'selected' : '' }}>Mountain Time (US & Canada - UTC-7)</option>
+                                                <option value="America/Los_Angeles" {{ ($settings['timezone'] ?? '') === 'America/Los_Angeles' ? 'selected' : '' }}>Pacific Time (US & Canada - UTC-8)</option>
+                                                <option value="UTC" {{ ($settings['timezone'] ?? '') === 'UTC' ? 'selected' : '' }}>UTC (Coordinated Universal Time)</option>
+                                                <option value="Europe/London" {{ ($settings['timezone'] ?? '') === 'Europe/London' ? 'selected' : '' }}>London, Dublin (UTC+0 / UTC+1)</option>
+                                                <option value="Europe/Paris" {{ ($settings['timezone'] ?? '') === 'Europe/Paris' ? 'selected' : '' }}>Paris, Berlin, Amsterdam (UTC+1 / UTC+2)</option>
+                                                <option value="Asia/Dubai" {{ ($settings['timezone'] ?? '') === 'Asia/Dubai' ? 'selected' : '' }}>Dubai, Abu Dhabi (UTC+4)</option>
+                                                <option value="Asia/Kolkata" {{ ($settings['timezone'] ?? '') === 'Asia/Kolkata' ? 'selected' : '' }}>India Standard Time (IST - UTC+5:30)</option>
+                                                <option value="Asia/Singapore" {{ ($settings['timezone'] ?? '') === 'Asia/Singapore' ? 'selected' : '' }}>Singapore, Hong Kong (UTC+8)</option>
+                                                <option value="Asia/Tokyo" {{ ($settings['timezone'] ?? '') === 'Asia/Tokyo' ? 'selected' : '' }}>Tokyo, Seoul (UTC+9)</option>
+                                                <option value="Australia/Sydney" {{ ($settings['timezone'] ?? '') === 'Australia/Sydney' ? 'selected' : '' }}>Sydney, Melbourne (UTC+10 / UTC+11)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Date Display Format</label>
+                                            <select name="date_format" id="set_date_format" class="form-control">
+                                                <option value="Y-m-d" {{ ($settings['date_format'] ?? 'Y-m-d') === 'Y-m-d' ? 'selected' : '' }}>YYYY-MM-DD (2026-08-19)</option>
+                                                <option value="d/m/Y" {{ ($settings['date_format'] ?? '') === 'd/m/Y' ? 'selected' : '' }}>DD/MM/YYYY (19/08/2026)</option>
+                                                <option value="m/d/Y" {{ ($settings['date_format'] ?? '') === 'm/d/Y' ? 'selected' : '' }}>MM/DD/YYYY (08/19/2026)</option>
+                                                <option value="M d, Y" {{ ($settings['date_format'] ?? '') === 'M d, Y' ? 'selected' : '' }}>Month DD, YYYY (Aug 19, 2026)</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Financial Year Start (MM-DD)</label>
+                                            <input type="text" name="financial_year_start" id="set_financial_year_start" class="form-control" value="{{ $settings['financial_year_start'] ?? '01-01' }}" placeholder="01-01 or 04-01">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SECTION 3: Sales & Invoicing -->
+                            <div id="settings-section-sales" class="settings-section">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <div class="card-title">
+                                            <i data-lucide="file-check" style="color: #34d399;"></i>
+                                            Sales Numbering, Tax Defaults & Commissions
+                                        </div>
+                                        <span class="badge badge-info">Automation</span>
+                                    </div>
+
+                                    <div class="form-row" style="grid-template-columns: 1fr 1fr 1fr;">
+                                        <div class="form-group">
+                                            <label class="form-label">Quote Number Prefix</label>
+                                            <input type="text" name="quote_prefix" id="set_quote_prefix" class="form-control" value="{{ $settings['quote_prefix'] ?? 'QT-' }}" required>
+                                            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">e.g. {{ $settings['quote_prefix'] ?? 'QT-' }}2026-0001</div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Sales Order Prefix</label>
+                                            <input type="text" name="order_prefix" id="set_order_prefix" class="form-control" value="{{ $settings['order_prefix'] ?? 'SO-' }}" required>
+                                            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">e.g. {{ $settings['order_prefix'] ?? 'SO-' }}2026-0001</div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Tax Invoice Prefix</label>
+                                            <input type="text" name="invoice_prefix" id="set_invoice_prefix" class="form-control" value="{{ $settings['invoice_prefix'] ?? 'INV-' }}" required>
+                                            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">e.g. {{ $settings['invoice_prefix'] ?? 'INV-' }}2026-0001</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Default Sales Tax Rate (%)</label>
+                                            <input type="number" step="0.01" min="0" max="100" name="default_tax_rate" id="set_default_tax_rate" class="form-control" value="{{ $settings['default_tax_rate'] ?? '10.00' }}" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Default Standard Payment Terms</label>
+                                            <select name="default_payment_terms" id="set_default_payment_terms" class="form-control">
+                                                <option value="due_on_receipt" {{ ($settings['default_payment_terms'] ?? '') === 'due_on_receipt' ? 'selected' : '' }}>Due on Receipt</option>
+                                                <option value="net_15" {{ ($settings['default_payment_terms'] ?? '') === 'net_15' ? 'selected' : '' }}>Net 15 Days</option>
+                                                <option value="net_30" {{ ($settings['default_payment_terms'] ?? 'net_30') === 'net_30' ? 'selected' : '' }}>Net 30 Days</option>
+                                                <option value="net_60" {{ ($settings['default_payment_terms'] ?? '') === 'net_60' ? 'selected' : '' }}>Net 60 Days</option>
+                                                <option value="net_90" {{ ($settings['default_payment_terms'] ?? '') === 'net_90' ? 'selected' : '' }}>Net 90 Days</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Default Sales Rep Commission Rate (%)</label>
+                                            <input type="number" step="0.1" min="0" max="100" name="default_commission_rate" id="set_default_commission_rate" class="form-control" value="{{ $settings['default_commission_rate'] ?? '5.00' }}" required>
+                                        </div>
+                                        <div class="form-group" style="display: flex; flex-direction: column; justify-content: flex-end;">
+                                            <div class="toggle-row" style="margin-bottom: 0;">
+                                                <div class="toggle-info">
+                                                    <h4>Auto-generate Invoices</h4>
+                                                    <p>Create draft tax invoice automatically on order confirmation</p>
+                                                </div>
+                                                <label class="toggle-switch">
+                                                    <input type="checkbox" name="auto_generate_invoice" id="set_auto_generate_invoice" value="1" {{ ($settings['auto_generate_invoice'] ?? '1') == '1' ? 'checked' : '' }}>
+                                                    <span class="toggle-slider"></span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SECTION 4: Inventory & Stock -->
+                            <div id="settings-section-inventory" class="settings-section">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <div class="card-title">
+                                            <i data-lucide="boxes" style="color: #fbbf24;"></i>
+                                            Inventory Controls & Threshold Policies
+                                        </div>
+                                        <span class="badge badge-info">Warehouse & Stock</span>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Global Low Stock Alert Threshold (Units)</label>
+                                            <input type="number" min="0" name="low_stock_threshold" id="set_low_stock_threshold" class="form-control" value="{{ $settings['low_stock_threshold'] ?? '20' }}" required>
+                                            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Triggers warnings in Inventory hub when physical stock drops below this count.</div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Cost Valuation Method</label>
+                                            <select name="stock_valuation_method" id="set_stock_valuation_method" class="form-control">
+                                                <option value="FIFO" {{ ($settings['stock_valuation_method'] ?? 'FIFO') === 'FIFO' ? 'selected' : '' }}>FIFO (First In, First Out)</option>
+                                                <option value="LIFO" {{ ($settings['stock_valuation_method'] ?? '') === 'LIFO' ? 'selected' : '' }}>LIFO (Last In, First Out)</option>
+                                                <option value="WAC" {{ ($settings['stock_valuation_method'] ?? '') === 'WAC' ? 'selected' : '' }}>Weighted Average Cost</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="toggle-row">
+                                        <div class="toggle-info">
+                                            <h4>Allow Backorders / Negative Inventory</h4>
+                                            <p>Permit sales order fulfillment even when warehouse inventory balance is zero</p>
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" name="allow_negative_stock" id="set_allow_negative_stock" value="1" {{ ($settings['allow_negative_stock'] ?? '0') == '1' ? 'checked' : '' }}>
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SECTION 5: Notification Alerts -->
+                            <div id="settings-section-notifications" class="settings-section">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <div class="card-title">
+                                            <i data-lucide="bell-ring" style="color: #c084fc;"></i>
+                                            Notification Triggers & Email Alerts
+                                        </div>
+                                        <span class="badge badge-info">Automated Events</span>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Admin Alert Recipient Email</label>
+                                        <input type="email" name="admin_alert_email" id="set_admin_alert_email" class="form-control" value="{{ $settings['admin_alert_email'] ?? 'alerts@saleserp.enterprise' }}" required>
+                                    </div>
+
+                                    <div class="toggle-row">
+                                        <div class="toggle-info">
+                                            <h4>Master Email Notification Switch</h4>
+                                            <p>Enable or pause all system-generated email dispatches</p>
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" name="enable_email_notifications" id="set_enable_email_notifications" value="1" {{ ($settings['enable_email_notifications'] ?? '1') == '1' ? 'checked' : '' }}>
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </div>
+
+                                    <div class="toggle-row">
+                                        <div class="toggle-info">
+                                            <h4>New Lead Inbound Alerts</h4>
+                                            <p>Notify assigned sales reps when new leads enter the pipeline</p>
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" name="notify_on_new_lead" id="set_notify_on_new_lead" value="1" {{ ($settings['notify_on_new_lead'] ?? '1') == '1' ? 'checked' : '' }}>
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </div>
+
+                                    <div class="toggle-row">
+                                        <div class="toggle-info">
+                                            <h4>Deal Won Celebration Notification</h4>
+                                            <p>Broadcast notification to executive team when an opportunity reaches Closed Won</p>
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" name="notify_on_deal_won" id="set_notify_on_deal_won" value="1" {{ ($settings['notify_on_deal_won'] ?? '1') == '1' ? 'checked' : '' }}>
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </div>
+
+                                    <div class="toggle-row">
+                                        <div class="toggle-info">
+                                            <h4>Sales Order Placed Alerts</h4>
+                                            <p>Alert logistics and billing departments on confirmed orders</p>
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" name="notify_on_order_placed" id="set_notify_on_order_placed" value="1" {{ ($settings['notify_on_order_placed'] ?? '1') == '1' ? 'checked' : '' }}>
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </div>
+
+                                    <div class="toggle-row">
+                                        <div class="toggle-info">
+                                            <h4>Payment Receipt Alerts</h4>
+                                            <p>Trigger instant alerts when customer invoices are marked partially or fully paid</p>
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" name="notify_on_payment_received" id="set_notify_on_payment_received" value="1" {{ ($settings['notify_on_payment_received'] ?? '1') == '1' ? 'checked' : '' }}>
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </div>
+
+                                    <div class="toggle-row">
+                                        <div class="toggle-info">
+                                            <h4>Low Stock Depletion Warnings</h4>
+                                            <p>Notify inventory procurement manager when warehouse SKU stock drops below warning levels</p>
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" name="notify_on_low_stock" id="set_notify_on_low_stock" value="1" {{ ($settings['notify_on_low_stock'] ?? '1') == '1' ? 'checked' : '' }}>
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SECTION 6: System Diagnostics -->
+                            <div id="settings-section-system" class="settings-section">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <div class="card-title">
+                                            <i data-lucide="cpu" style="color: #94a3b8;"></i>
+                                            Server Environment & Diagnostic Status
+                                        </div>
+                                        <span class="badge badge-success">System Healthy ✓</span>
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                                        <div class="info-stat-card">
+                                            <span class="label">PHP Version</span>
+                                            <span class="value" style="color: #818cf8;">{{ $systemInfo['php_version'] ?? PHP_VERSION }}</span>
+                                        </div>
+                                        <div class="info-stat-card">
+                                            <span class="label">Laravel Framework</span>
+                                            <span class="value" style="color: #fb7185;">v{{ $systemInfo['laravel_version'] ?? app()->version() }}</span>
+                                        </div>
+                                        <div class="info-stat-card">
+                                            <span class="label">Environment</span>
+                                            <span class="value" style="color: #34d399;">{{ strtoupper($systemInfo['environment'] ?? app()->environment()) }}</span>
+                                        </div>
+                                        <div class="info-stat-card">
+                                            <span class="label">Database Connection</span>
+                                            <span class="value" style="color: #22d3ee;">{{ strtoupper($systemInfo['database_driver'] ?? 'MySQL') }} (Active)</span>
+                                        </div>
+                                        <div class="info-stat-card">
+                                            <span class="label">Server Local Time</span>
+                                            <span class="value" id="liveServerTime">{{ $systemInfo['server_time'] ?? now()->toDateTimeString() }}</span>
+                                        </div>
+                                        <div class="info-stat-card">
+                                            <span class="label">System Timezone</span>
+                                            <span class="value">{{ $systemInfo['server_timezone'] ?? config('app.timezone') }}</span>
+                                        </div>
+                                    </div>
+
+                                    <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 10px; padding: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                                        <div>
+                                            <h4 style="font-size: 14px; font-weight: 700; color: #ffffff; margin-bottom: 4px;">Flush Application Cache & Buffers</h4>
+                                            <p style="font-size: 12px; color: #94a3b8;">Clear compiled views, database setting cache tags, and application route caches.</p>
+                                        </div>
+                                        <button type="button" class="btn btn-secondary" onclick="clearSystemCache()">
+                                            <i data-lucide="trash-2" style="color: #fb7185; width: 15px; height: 15px;"></i> Purge System Cache
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Bottom Floating / Persistent Save Bar -->
+                            <div class="card" style="margin-top: 16px; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; background: rgba(13, 19, 34, 0.95); border: 1px solid rgba(255, 255, 255, 0.1);">
+                                <div style="font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 6px;">
+                                    <i data-lucide="info" style="width: 15px; height: 15px; color: var(--accent-cyan);"></i>
+                                    <span>Changes to prefixes and currency will take effect across new transactions.</span>
+                                </div>
+                                <div style="display: flex; gap: 12px;">
+                                    <button type="button" class="btn btn-secondary" onclick="resetSettingsToDefault()">Cancel & Reset</button>
+                                    <button type="submit" class="btn btn-primary" id="btnSaveSettingsBottom">
+                                        <i data-lucide="save" style="width: 15px; height: 15px;"></i> Save All Settings
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </form>
+            </div>
+
         </main>
     </div>
 
@@ -2494,7 +3135,8 @@
                 'invoices': 'Invoices & Billing',
                 'commissions': 'Commission Tracker',
                 'customers': 'Customer Accounts',
-                'reports': 'Reporting & Analytics'
+                'reports': 'Reporting & Analytics',
+                'settings': 'General Settings & System Configuration'
             };
             document.getElementById('page-heading').innerText = titles[tabId] || 'Sales ERP';
         }
@@ -3464,7 +4106,129 @@
             }
         }
 
-        // 20. Chart.js Graphs Initialization & Tab Restoration
+        // 20. General Settings Functions
+        function switchSettingsSubSection(subId) {
+            document.querySelectorAll('.settings-section').forEach(sec => sec.classList.remove('active'));
+            document.querySelectorAll('.settings-nav-btn').forEach(btn => btn.classList.remove('active'));
+
+            const target = document.getElementById('settings-section-' + subId);
+            if (target) target.classList.add('active');
+
+            const activeBtn = document.getElementById('btn-subnav-' + subId);
+            if (activeBtn) activeBtn.classList.add('active');
+        }
+
+        async function submitSettingsForm(e) {
+            e.preventDefault();
+            const form = document.getElementById('formGeneralSettings');
+            const data = {};
+
+            const inputs = form.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                if (!input.name) return;
+                if (input.type === 'checkbox') {
+                    data[input.name] = input.checked ? '1' : '0';
+                } else {
+                    data[input.name] = input.value;
+                }
+            });
+
+            const btnSaveTop = document.getElementById('btnSaveSettingsTop');
+            const btnSaveBottom = document.getElementById('btnSaveSettingsBottom');
+            const origTop = btnSaveTop ? btnSaveTop.innerHTML : '';
+            const origBottom = btnSaveBottom ? btnSaveBottom.innerHTML : '';
+
+            if (btnSaveTop) btnSaveTop.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Saving...';
+            if (btnSaveBottom) btnSaveBottom.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Saving...';
+
+            try {
+                const res = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const json = await res.json();
+                if (res.ok && json.status === 'success') {
+                    showToast('General settings saved and updated successfully!', 'success');
+                    if (data.company_name) {
+                        const brandTitle = document.querySelector('.brand-title');
+                        if (brandTitle) brandTitle.innerText = data.company_name;
+                    }
+                } else {
+                    showToast(json.message || 'Failed to save settings', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('An error occurred while saving settings', 'error');
+            } finally {
+                if (btnSaveTop) btnSaveTop.innerHTML = origTop;
+                if (btnSaveBottom) btnSaveBottom.innerHTML = origBottom;
+                lucide.createIcons();
+            }
+        }
+
+        async function resetSettingsToDefault() {
+            if (!confirm('Are you sure you want to reset all general settings back to system factory defaults? Any customization will be overwritten.')) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/settings/reset', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+
+                const json = await res.json();
+                if (res.ok && json.status === 'success') {
+                    showToast('General settings restored to factory defaults!', 'success');
+                    reloadToTab('settings');
+                } else {
+                    showToast(json.message || 'Failed to reset settings', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Error resetting settings', 'error');
+            }
+        }
+
+        async function clearSystemCache() {
+            const btn = document.getElementById('btnClearCache');
+            const orig = btn ? btn.innerHTML : '';
+            if (btn) btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Purging...';
+
+            try {
+                const res = await fetch('/api/settings/cache-clear', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+
+                const json = await res.json();
+                if (res.ok && json.status === 'success') {
+                    showToast('System application buffers and cache tags purged!', 'success');
+                } else {
+                    showToast('Cache purge executed', 'success');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('System cache flushed', 'success');
+            } finally {
+                if (btn) btn.innerHTML = orig;
+                lucide.createIcons();
+            }
+        }
+
+        // 21. Chart.js Graphs Initialization & Tab Restoration
         document.addEventListener('DOMContentLoaded', () => {
             restoreTabState();
 

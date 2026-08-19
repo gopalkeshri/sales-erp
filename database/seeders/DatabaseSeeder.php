@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             QuoteAndOrderSeeder::class,
             InvoiceAndPaymentSeeder::class,
             CommissionAndActivitySeeder::class,
+            SettingSeeder::class,
         ]);
     }
 }

@@ -19,6 +19,7 @@ use App\Models\Territory;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\Activity;
+use App\Models\Setting;
 use App\Services\ReportService;
 use App\Services\OpportunityService;
 use Illuminate\Http\Request;
@@ -58,6 +59,15 @@ class SalesErpController extends Controller
         $territories = Territory::with(['manager', 'parent'])->get();
         $users = User::where('is_active', true)->get();
         $activities = Activity::with('performer')->orderBy('created_at', 'desc')->limit(15)->get();
+        $settings = Setting::getAllKeyValue();
+        $systemInfo = [
+            'php_version' => PHP_VERSION,
+            'laravel_version' => app()->version(),
+            'environment' => app()->environment(),
+            'server_time' => now()->toDateTimeString(),
+            'server_timezone' => config('app.timezone', 'UTC'),
+            'database_driver' => config('database.default'),
+        ];
 
         return view('erp.index', compact(
             'currentUser',
@@ -79,7 +89,9 @@ class SalesErpController extends Controller
             'commissions',
             'territories',
             'users',
-            'activities'
+            'activities',
+            'settings',
+            'systemInfo'
         ));
     }
 
