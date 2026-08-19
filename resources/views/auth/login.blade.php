@@ -420,7 +420,7 @@
                 </button>
             </form>
 
-            <!-- Quick Demo Login Presets -->
+            <!-- Quick Demo Login Presets
             <div class="demo-section">
                 <div class="demo-title">1-Click Role Login Demo</div>
                 <div class="demo-cards">
@@ -437,7 +437,7 @@
                         <div class="demo-badge">Enterprise</div>
                     </div>
                 </div>
-            </div>
+            </div> -->
         </div>
     </div>
 
