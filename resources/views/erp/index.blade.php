@@ -6,6 +6,12 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Sales ERP Enterprise - B2B Revenue & Fulfillment Platform</title>
     
+    <!-- Favicon & Icons -->
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="icon" type="image/png" sizes="64x64" href="{{ asset('favicon.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+    <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
+    
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -216,36 +222,44 @@
 
         /* Top Header */
         .header {
-            height: 70px;
-            background: rgba(13, 19, 34, 0.85);
+            min-height: 70px;
+            background: rgba(13, 19, 34, 0.9);
             backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 28px;
+            padding: 12px 28px;
             position: sticky;
             top: 0;
             z-index: 30;
+            gap: 16px;
         }
 
         .header-title-box {
             display: flex;
             align-items: center;
             gap: 12px;
+            min-width: 0;
+            flex-shrink: 1;
         }
 
         .page-title {
-            font-size: 20px;
+            font-size: 19px;
             font-weight: 700;
             color: #ffffff;
             letter-spacing: -0.01em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .header-actions {
             display: flex;
             align-items: center;
             gap: 12px;
+            flex-shrink: 0;
+            margin-left: auto;
         }
 
         .search-input-box {
@@ -1999,7 +2013,7 @@
                         </div>
                     </div>
                 </div>
-            </div>      </div>
+            </div>
 
             <!-- TAB 11: GENERAL SETTINGS -->
             <div id="tab-settings" class="tab-pane">
@@ -3210,15 +3224,15 @@
             const titles = {
                 'dashboard': 'Executive Dashboard',
                 'leads': 'Lead Pipeline Management',
-                'opportunities': 'Opportunity Kanban Pipeline',
+                'opportunities': 'Opportunity Pipeline',
                 'quotes': 'Quotes & Proposals',
-                'orders': 'Order Management & Fulfillment',
-                'inventory': 'Inventory & Multi-Warehouse Hub',
+                'orders': 'Sales Orders & Fulfillment',
+                'inventory': 'Inventory & Warehouses',
                 'invoices': 'Invoices & Billing',
                 'commissions': 'Commission Tracker',
                 'customers': 'Customer Accounts',
                 'reports': 'Reporting & Analytics',
-                'settings': 'General Settings & System Configuration'
+                'settings': 'General System Settings'
             };
             document.getElementById('page-heading').innerText = titles[tabId] || 'Sales ERP';
         }

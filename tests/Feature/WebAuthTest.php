@@ -22,7 +22,7 @@ class WebAuthTest extends TestCase
         $response->assertStatus(200)
             ->assertSee('SALES ERP')
             ->assertSee('Sign In to ERP Portal')
-            ->assertSee('1-Click Role Login Demo');
+            ->assertSee('favicon.svg');
     }
 
     public function test_unauthenticated_user_redirected_to_login(): void

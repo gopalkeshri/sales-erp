@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+
+    <!-- Border Gradient -->
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818cf8" />
+      <stop offset="50%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#34d399" />
+    </linearGradient>
+
+    <!-- Left Facet Gradient -->
+    <linearGradient id="leftFacet" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#4338ca" />
+    </linearGradient>
+
+    <!-- Right Facet Gradient -->
+    <linearGradient id="rightFacet" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#0e7490" />
+    </linearGradient>
+
+    <!-- Top / Chart Growth Gradient -->
+    <linearGradient id="growthGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#34d399" />
+    </linearGradient>
+
+    <!-- Glow Filter -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background rounded squircle -->
+  <rect x="2" y="2" width="60" height="60" rx="16" ry="16" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="2" />
+
+  <!-- Sales ERP Emblem: Layered Isometric Growth Cubes / Revenue Bars -->
+  <g filter="url(#glow)">
+    <!-- Base Bar 1 (Left - Qualification) -->
+    <path d="M14 42 L24 47 L24 37 L14 32 Z" fill="#4f46e5" opacity="0.9" />
+    <path d="M24 47 L34 42 L34 32 L24 37 Z" fill="#4338ca" opacity="0.9" />
+    <path d="M14 32 L24 27 L34 32 L24 37 Z" fill="#818cf8" />
+
+    <!-- Center Bar 2 (Middle - Pipeline) -->
+    <path d="M24 37 L34 42 L34 27 L24 22 Z" fill="#0891b2" />
+    <path d="M34 42 L44 37 L44 22 L34 27 Z" fill="#0e7490" />
+    <path d="M24 22 L34 17 L44 22 L34 27 Z" fill="#38bdf8" />
+
+    <!-- High Bar 3 / Arrow Peak (Right - Revenue Won) -->
+    <path d="M34 32 L44 37 L44 17 L34 12 Z" fill="#059669" />
+    <path d="M44 37 L50 34 L50 14 L44 17 Z" fill="#047857" />
+    <path d="M34 12 L44 7 L50 14 L40 19 Z" fill="url(#growthGrad)" />
+
+    <!-- Growth Surge Pulse Accent -->
+    <circle cx="44" cy="7" r="2.5" fill="#ffffff" filter="url(#glow)" />
+  </g>
+</svg>
