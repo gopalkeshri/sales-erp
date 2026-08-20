@@ -13,10 +13,18 @@ class QuoteItem extends Model
         'quote_id',
         'product_id',
         'description',
+        'hsn_code',
         'quantity',
         'unit_price',
         'discount_percent',
+        'taxable_value',
         'tax_rate',
+        'cgst_rate',
+        'cgst_amount',
+        'sgst_rate',
+        'sgst_amount',
+        'igst_rate',
+        'igst_amount',
         'total',
     ];
 
@@ -26,7 +34,14 @@ class QuoteItem extends Model
             'quantity' => 'integer',
             'unit_price' => 'decimal:2',
             'discount_percent' => 'decimal:2',
+            'taxable_value' => 'decimal:2',
             'tax_rate' => 'decimal:2',
+            'cgst_rate' => 'decimal:2',
+            'cgst_amount' => 'decimal:2',
+            'sgst_rate' => 'decimal:2',
+            'sgst_amount' => 'decimal:2',
+            'igst_rate' => 'decimal:2',
+            'igst_amount' => 'decimal:2',
             'total' => 'decimal:2',
         ];
     }
