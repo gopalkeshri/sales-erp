@@ -990,6 +990,108 @@
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
+
+        /* Multi-Page Print Rules for Indian GST Tax Invoices & Documents */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 10mm 10mm 12mm 10mm;
+            }
+
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            body {
+                background: #ffffff !important;
+                color: #0f172a !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            /* Isolate printable modal content and hide entire background ERP UI */
+            .sidebar,
+            .header,
+            .main-wrapper,
+            .modal-backdrop:not(#pdfModal),
+            #pdfModal .modal-header,
+            #pdfModal .modal-footer,
+            .toast-container,
+            .no-print {
+                display: none !important;
+                visibility: hidden !important;
+            }
+
+            #pdfModal.modal-backdrop {
+                position: static !important;
+                background: transparent !important;
+                display: block !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
+            }
+
+            #pdfModal .modal-box {
+                position: static !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                max-height: none !important;
+                height: auto !important;
+                overflow: visible !important;
+                box-shadow: none !important;
+                border: none !important;
+                background: transparent !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            #pdfContent {
+                padding: 0 !important;
+                margin: 0 !important;
+                max-height: none !important;
+                height: auto !important;
+                overflow: visible !important;
+                background: transparent !important;
+            }
+
+            /* Multi-page table pagination */
+            table.gst-print-table,
+            table.items-table {
+                page-break-inside: auto !important;
+                width: 100% !important;
+                border-collapse: collapse !important;
+            }
+
+            table.gst-print-table thead,
+            table.items-table thead {
+                display: table-header-group !important;
+            }
+
+            table.gst-print-table tfoot,
+            table.items-table tfoot {
+                display: table-footer-group !important;
+            }
+
+            table.gst-print-table tr,
+            table.items-table tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            table.gst-print-table th {
+                background: #0f172a !important;
+                color: #ffffff !important;
+            }
+
+            .avoid-page-break {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1447,11 +1549,47 @@
 
             <!-- TAB 4: QUOTES & PROPOSALS -->
             <div id="tab-quotes" class="tab-pane">
+                <!-- Quote Metrics KPI Grid -->
+                <div class="kpi-grid" style="margin-bottom: 20px;">
+                    <div class="kpi-card">
+                        <div class="kpi-top">
+                            <span class="kpi-label">Active Proposal Volume</span>
+                            <div class="kpi-icon-box" style="background: rgba(99, 102, 241, 0.15); color: #818cf8;">
+                                <i data-lucide="file-text"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($quotes->sum('total'), 2) }}</div>
+                        <div class="kpi-subtext">{{ $quotes->count() }} total commercial quotes issued</div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-top">
+                            <span class="kpi-label">Converted / Won Proposals</span>
+                            <div class="kpi-icon-box" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
+                                <i data-lucide="check-circle"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($quotes->where('status', 'converted')->sum('total'), 2) }}</div>
+                        <div class="kpi-subtext" style="color: #34d399;">{{ $quotes->where('status', 'converted')->count() }} quotes converted to sales orders</div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-top">
+                            <span class="kpi-label">Open / Pending Deals</span>
+                            <div class="kpi-icon-box" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">
+                                <i data-lucide="clock"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($quotes->whereIn('status', ['draft', 'sent'])->sum('total'), 2) }}</div>
+                        <div class="kpi-subtext" style="color: #fbbf24;">{{ $quotes->whereIn('status', ['draft', 'sent'])->count() }} quotes awaiting customer approval</div>
+                    </div>
+                </div>
+
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title">
                             <i data-lucide="file-text" style="color: var(--primary);"></i>
-                            Quotes & Pricing Proposals
+                            Commercial Quotations & Pricing Proposals
                         </div>
                         <button class="btn btn-primary" onclick="openModal('createQuoteModal')">
                             <i data-lucide="plus"></i> Generate Quote
@@ -1464,33 +1602,60 @@
                                 <tr>
                                     <th>Quote Number</th>
                                     <th>Customer Account</th>
+                                    <th>Place of Supply</th>
+                                    <th>GST Category</th>
                                     <th>Status</th>
                                     <th>Valid Until</th>
-                                    <th>Line Items</th>
-                                    <th>Total Value</th>
+                                    <th>Taxable Subtotal</th>
+                                    <th>GST Output</th>
+                                    <th>Total Proposal</th>
                                     <th>Actions</th>
                                 </tr>
-                            <                            <tbody>
+                            </thead>
+                            <tbody>
                                 @forelse($quotes as $q)
                                 <tr>
-                                    <td style="font-weight: 700; color: white;">{{ $q->quote_number }}</td>
-                                    <td>{{ $q->customer->company_name ?? 'N/A' }}</td>
+                                    <td style="font-weight: 700; color: white; font-family: monospace;">{{ $q->quote_number }}</td>
                                     <td>
-                                        <span class="badge {{ $q->status === 'converted' ? 'badge-success' : ($q->status === 'sent' ? 'badge-info' : ($q->status === 'accepted' ? 'badge-purple' : 'badge-warning')) }}">
+                                        <div style="font-weight: 700; color: white;">{{ $q->customer->company_name ?? 'N/A' }}</div>
+                                        <div style="font-size: 11px; color: #94a3b8;">
+                                            @if($q->customer && $q->customer->gst_number)
+                                                GSTIN: <code style="color: var(--accent-cyan);">{{ $q->customer->gst_number }}</code>
+                                            @else
+                                                <span style="color: #64748b;">Unregistered Entity</span>
+                                            @endif
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-info">{{ $q->place_of_supply ?: ($q->customer->address_state ?? 'Maharashtra') }}</span>
+                                    </td>
+                                    <td>
+                                        @if($q->gst_type === 'inter_state')
+                                            <span class="badge badge-purple">IGST (Inter-State)</span>
+                                        @else
+                                            <span class="badge badge-success">CGST+SGST (Intra-State)</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <span class="badge {{ $q->status === 'converted' ? 'badge-success' : ($q->status === 'sent' ? 'badge-info' : ($q->status === 'accepted' ? 'badge-purple' : ($q->status === 'rejected' ? 'badge-danger' : 'badge-warning'))) }}">
                                             {{ ucfirst($q->status) }}
                                         </span>
                                     </td>
-                                    <td>{{ $q->valid_until ? $q->valid_until->format('M d, Y') : 'N/A' }}</td>
-                                    <td>{{ $q->items->count() }} items</td>
-                                    <td style="font-weight: 700; color: #34d399;">${{ number_format($q->total, 2) }}</td>
+                                    <td>{{ $q->valid_until ? $q->valid_until->format('d/m/Y') : 'N/A' }}</td>
+                                    <td style="font-weight: 600;">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($q->subtotal - $q->discount_total, 2) }}</td>
+                                    <td style="color: #fbbf24; font-weight: 600;">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($q->tax_total, 2) }}</td>
+                                    <td style="font-weight: 700; color: #ffffff;">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($q->total, 2) }}</td>
                                     <td>
-                                        <div style="display: flex; gap: 6px;">
-                                            <button class="btn btn-sm btn-secondary" onclick="viewQuotePdf({{ $q->id }}, '{{ $q->quote_number }}')">
-                                                <i data-lucide="printer" style="width: 14px; height: 14px;"></i> View PDF
+                                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                            <button class="btn btn-sm btn-secondary" onclick="viewQuotePdf({{ $q->id }}, '{{ $q->quote_number }}')" title="Preview Proposal">
+                                                <i data-lucide="file-text" style="width: 14px; height: 14px; color: var(--accent-cyan);"></i> Proposal
                                             </button>
+                                            <a href="/quotes/{{ $q->id }}/print" target="_blank" class="btn btn-sm btn-secondary" title="Open Full-Page Printable Proposal (A4)" style="color: #34d399;">
+                                                <i data-lucide="printer" style="width: 14px; height: 14px;"></i> Print A4
+                                            </a>
                                             @if($q->status !== 'converted')
-                                            <button class="btn btn-sm btn-success" onclick="convertQuoteToOrder({{ $q->id }})">
-                                                <i data-lucide="check" style="width: 14px; height: 14px;"></i> Convert to Order
+                                            <button class="btn btn-sm btn-success" onclick="convertQuoteToOrder({{ $q->id }})" title="Convert to Confirmed Sales Order">
+                                                <i data-lucide="check" style="width: 14px; height: 14px;"></i> Convert
                                             </button>
                                             @endif
                                         </div>
@@ -1498,10 +1663,10 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="7" style="text-align: center; padding: 36px; color: #64748b;">
+                                    <td colspan="10" style="text-align: center; padding: 36px; color: #64748b;">
                                         <i data-lucide="file-text" style="width: 28px; height: 28px; margin-bottom: 8px; opacity: 0.5;"></i>
                                         <div style="font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">No Quotes Generated</div>
-                                        <div>Click <strong>Generate Quote</strong> above to prepare a pricing proposal.</div>
+                                        <div>Click <strong>Generate Quote</strong> above to prepare a GST pricing proposal.</div>
                                     </td>
                                 </tr>
                                 @endforelse
@@ -1982,15 +2147,18 @@
                                         {{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($inv->balance_due, 2) }}
                                     </td>
                                     <td>
-                                        <div style="display: flex; gap: 6px;">
+                                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
                                             @if($inv->balance_due > 0)
                                             <button class="btn btn-sm btn-success" onclick="openPaymentModal({{ $inv->id }}, '{{ $inv->invoice_number }}', {{ $inv->balance_due }})" title="Record Payment">
                                                 <i data-lucide="credit-card" style="width: 14px; height: 14px;"></i> Pay
                                             </button>
                                             @endif
-                                            <button class="btn btn-sm btn-secondary" onclick="viewInvoicePdf({{ $inv->id }}, '{{ $inv->invoice_number }}')" title="View Indian GST Tax Invoice">
-                                                <i data-lucide="printer" style="width: 14px; height: 14px;"></i> Tax Invoice
+                                            <button class="btn btn-sm btn-secondary" onclick="viewInvoicePdf({{ $inv->id }}, '{{ $inv->invoice_number }}')" title="Preview Indian GST Tax Invoice">
+                                                <i data-lucide="file-text" style="width: 14px; height: 14px; color: var(--accent-cyan);"></i> Tax Invoice
                                             </button>
+                                            <a href="/invoices/{{ $inv->id }}/print" target="_blank" class="btn btn-sm btn-secondary" title="Open Full-Page Printable Invoice (A4)" style="color: #34d399;">
+                                                <i data-lucide="printer" style="width: 14px; height: 14px;"></i> Print A4
+                                            </a>
                                             @if($inv->status === 'draft')
                                             <button class="btn btn-sm btn-secondary" onclick="sendInvoice({{ $inv->id }})" title="Send Invoice">
                                                 <i data-lucide="send" style="width: 14px; height: 14px;"></i> Send
@@ -3334,33 +3502,61 @@
         </div>
     </div>
 
-    <!-- MODAL 5: Create Quote Modal with Dynamic Line Items -->
+    <!-- MODAL 5: Create Quote & Pricing Proposal Modal with Dynamic Line Items & Live GST Split -->
     <div id="createQuoteModal" class="modal-backdrop">
-        <div class="modal-box" style="max-width: 780px;">
+        <div class="modal-box" style="max-width: 860px;">
             <div class="modal-header">
-                <div class="modal-title">Generate Quote & Proposal</div>
+                <div class="modal-title">
+                    <i data-lucide="file-text" style="color: var(--primary);"></i>
+                    Generate Commercial Quote & Pricing Proposal (Indian GST)
+                </div>
                 <button onclick="closeModal('createQuoteModal')" style="background:none; border:none; color:#94a3b8; cursor:pointer;"><i data-lucide="x"></i></button>
             </div>
             <form onsubmit="submitCreateQuote(event)">
                 <div class="modal-body">
                     <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Select Customer</label>
-                            <select name="customer_id" id="quote_customer_id" class="form-control" required>
+                        <div class="form-group" style="flex: 2;">
+                            <label class="form-label">Customer Account (Proposed To)</label>
+                            <select name="customer_id" id="quote_customer_id" class="form-control" onchange="handleQuoteCustomerChange(this)" required>
+                                <option value="">-- Select Customer Account --</option>
                                 @foreach($customers as $c)
-                                <option value="{{ $c->id }}">{{ $c->company_name }}</option>
+                                <option value="{{ $c->id }}" data-state="{{ $c->state_code ?: '27' }}" data-statename="{{ $c->address_state ?: 'Maharashtra' }}" data-gstin="{{ $c->gst_number }}">
+                                    {{ $c->company_name }} @if($c->gst_number) (GSTIN: {{ $c->gst_number }}) @endif
+                                </option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">Place of Supply (State)</label>
+                            <select name="state_code" id="quote_place_of_supply" class="form-control" onchange="recalculateQuoteGstSummary()" required>
+                                @foreach($indianStates as $st)
+                                <option value="{{ $st['code'] }}" {{ ($settings['company_state_code'] ?? '27') === $st['code'] ? 'selected' : '' }}>
+                                    {{ $st['code'] }} - {{ $st['name'] }}
+                                </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
                             <label class="form-label">Valid Until</label>
                             <input type="date" name="valid_until" class="form-control" value="{{ date('Y-m-d', strtotime('+30 days')) }}" required>
                         </div>
                     </div>
 
+                    <!-- Live GST Split Indicator Banner -->
+                    <div style="background: rgba(99, 102, 241, 0.08); border: 1px dashed rgba(99, 102, 241, 0.4); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="scale" style="width: 18px; height: 18px; color: #818cf8;"></i>
+                            <div>
+                                <span style="font-size: 12px; font-weight: 700; color: #ffffff;" id="quote_gst_rule_label">Intra-State GST (CGST + SGST)</span>
+                                <div style="font-size: 11px; color: #94a3b8;" id="quote_gst_rule_desc">Supplier & Buyer in same State (27). Tax split 50% CGST + 50% SGST.</div>
+                            </div>
+                        </div>
+                        <span class="badge badge-success" id="quote_gst_badge_pill">INTRA-STATE</span>
+                    </div>
+
                     <!-- Line Items Section -->
                     <div style="margin-top: 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-                        <h4 style="font-size: 13px; font-weight: 700; color: #ffffff;">Quote Line Items</h4>
+                        <h4 style="font-size: 13px; font-weight: 700; color: #ffffff;">Proposed Products & Services</h4>
                         <button type="button" class="btn btn-sm btn-secondary" onclick="addQuoteItemRow()">
                             <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add Item
                         </button>
@@ -3370,19 +3566,32 @@
                         <div id="quoteItemsContainer"></div>
                     </div>
 
-                    <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
-                        <div style="width: 260px; text-align: right; font-size: 13px;">
+                    <!-- Tax & Totals Preview Summary -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 16px; flex-wrap: wrap; gap: 16px;">
+                        <div style="font-size: 12px; color: #94a3b8; max-width: 380px;">
+                            <div style="font-weight: 600; color: #e2e8f0; margin-bottom: 4px;">Indian GST Proposal Engine</div>
+                            HSN codes and CGST/SGST/IGST splits are calculated in real-time according to Indian GST standards.
+                        </div>
+                        <div style="width: 320px; font-size: 13px; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #94a3b8;">
-                                <span>Subtotal:</span>
-                                <strong id="quote_subtotal_preview">$0.00</strong>
+                                <span>Taxable Subtotal:</span>
+                                <strong id="quote_subtotal_preview" style="color: #ffffff;">{{ $settings['currency_symbol'] ?? '₹' }}0.00</strong>
                             </div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #94a3b8;">
-                                <span>Estimated Tax:</span>
-                                <strong id="quote_tax_preview">$0.00</strong>
+                            <div id="quote_cgst_row" style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #94a3b8;">
+                                <span>Central GST (CGST):</span>
+                                <strong id="quote_cgst_preview" style="color: #fbbf24;">{{ $settings['currency_symbol'] ?? '₹' }}0.00</strong>
+                            </div>
+                            <div id="quote_sgst_row" style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #94a3b8;">
+                                <span>State GST (SGST):</span>
+                                <strong id="quote_sgst_preview" style="color: #fbbf24;">{{ $settings['currency_symbol'] ?? '₹' }}0.00</strong>
+                            </div>
+                            <div id="quote_igst_row" style="display: none; justify-content: space-between; margin-bottom: 4px; color: #94a3b8;">
+                                <span>Integrated GST (IGST):</span>
+                                <strong id="quote_igst_preview" style="color: #c084fc;">{{ $settings['currency_symbol'] ?? '₹' }}0.00</strong>
                             </div>
                             <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--border-color); padding-top: 6px; font-size: 16px; font-weight: 800; color: #34d399;">
-                                <span>Grand Total:</span>
-                                <span id="quote_total_preview">$0.00</span>
+                                <span>Grand Proposal Total:</span>
+                                <span id="quote_total_preview">{{ $settings['currency_symbol'] ?? '₹' }}0.00</span>
                             </div>
                         </div>
                     </div>
@@ -4209,20 +4418,35 @@
 
     <!-- MODAL 14: Document Printable / PDF Preview Modal (Indian GST Tax Invoice) -->
     <div id="pdfModal" class="modal-backdrop">
-        <div class="modal-box" style="max-width: 900px;">
-            <div class="modal-header" style="border-bottom: 1px solid var(--border-color);">
+        <div class="modal-box" style="max-width: 960px; width: 95%;">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
                 <div class="modal-title" id="pdfModalTitle">Document Preview</div>
-                <button onclick="closeModal('pdfModal')" style="background:none; border:none; color:#94a3b8; cursor:pointer;"><i data-lucide="x"></i></button>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="openDocumentPrintWindow()" title="Open clean full-page view in new tab">
+                        <i data-lucide="external-link" style="width: 14px; height: 14px; color: var(--accent-cyan);"></i> Open in New Tab
+                    </button>
+                    <button onclick="closeModal('pdfModal')" style="background:none; border:none; color:#94a3b8; cursor:pointer;"><i data-lucide="x"></i></button>
+                </div>
             </div>
-            <div class="modal-body" id="pdfContent" style="background: #ffffff; color: #1e293b; border-radius: 8px; padding: 24px; max-height: 75vh; overflow-y: auto;"></div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('pdfModal')">Close</button>
-                <button type="button" class="btn btn-primary" onclick="window.print()">
-                    <i data-lucide="printer" style="width: 15px; height: 15px;"></i> Print / Save PDF
-                </button>
+            <div class="modal-body" id="pdfContent" style="background: #ffffff; color: #1e293b; border-radius: 8px; padding: 20px; max-height: 75vh; overflow-y: auto;"></div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="info" style="width: 14px; height: 14px; color: var(--accent-cyan);"></i>
+                    <span>Optimized for multi-page A4 printing with auto-repeating table headers and unbroken line items.</span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('pdfModal')">Close</button>
+                    <button type="button" class="btn btn-secondary" onclick="openDocumentPrintWindow()">
+                        <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Full Screen View
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="printTaxInvoiceDirect()">
+                        <i data-lucide="printer" style="width: 15px; height: 15px;"></i> Print / Save PDF
+                    </button>
+                </div>
             </div>
         </div>
     </div>
+    <iframe id="printInvoiceIframe" style="position: absolute; top: -9999px; left: -9999px; width: 0; height: 0; border: 0; visibility: hidden;"></iframe>
 
     <!-- Toast Notifications -->
     <div class="toast-container" id="toastContainer"></div>
@@ -4495,23 +4719,102 @@
             }
         }
 
-        // 5. Dynamic Quote Item Row Builder
+        // 5. Dynamic Quote Item Row Builder & Live GST Split Engine
+        function handleQuoteCustomerChange(selectEl) {
+            const opt = selectEl.options[selectEl.selectedIndex];
+            if (!opt || !opt.value) return;
+            const stateCode = opt.getAttribute('data-state') || COMPANY_STATE_CODE;
+            const posSelect = document.getElementById('quote_place_of_supply');
+            if (posSelect) {
+                posSelect.value = stateCode;
+            }
+            recalculateQuoteGstSummary();
+        }
+
+        function recalculateQuoteGstSummary() {
+            const posSelect = document.getElementById('quote_place_of_supply');
+            const buyerState = posSelect ? posSelect.value : COMPANY_STATE_CODE;
+            const isIntraState = (buyerState === COMPANY_STATE_CODE);
+
+            const ruleLabel = document.getElementById('quote_gst_rule_label');
+            const ruleDesc = document.getElementById('quote_gst_rule_desc');
+            const badgePill = document.getElementById('quote_gst_badge_pill');
+            const cgstRow = document.getElementById('quote_cgst_row');
+            const sgstRow = document.getElementById('quote_sgst_row');
+            const igstRow = document.getElementById('quote_igst_row');
+
+            if (isIntraState) {
+                if (ruleLabel) ruleLabel.innerText = 'Intra-State GST (CGST + SGST)';
+                if (ruleDesc) ruleDesc.innerText = `Supplier & Buyer in same State (${buyerState}). Tax split 50% CGST + 50% SGST.`;
+                if (badgePill) {
+                    badgePill.className = 'badge badge-success';
+                    badgePill.innerText = 'INTRA-STATE';
+                }
+                if (cgstRow) cgstRow.style.display = 'flex';
+                if (sgstRow) sgstRow.style.display = 'flex';
+                if (igstRow) igstRow.style.display = 'none';
+            } else {
+                if (ruleLabel) ruleLabel.innerText = 'Inter-State GST (IGST)';
+                if (ruleDesc) ruleDesc.innerText = `Place of Supply (${buyerState}) differs from Supplier State (${COMPANY_STATE_CODE}). 100% IGST applied.`;
+                if (badgePill) {
+                    badgePill.className = 'badge badge-purple';
+                    badgePill.innerText = 'INTER-STATE (IGST)';
+                }
+                if (cgstRow) cgstRow.style.display = 'none';
+                if (sgstRow) sgstRow.style.display = 'none';
+                if (igstRow) igstRow.style.display = 'flex';
+            }
+
+            recalcQuoteTotals();
+        }
+
         function addQuoteItemRow() {
             const container = document.getElementById('quoteItemsContainer');
-            let productOptions = ALL_PRODUCTS.map(p => `<option value="${p.id}" data-price="${p.unit_price}">${p.sku} - ${p.name} ($${p.unit_price})</option>`).join('');
+            let productOptions = '<option value="">-- Select Product / SKU --</option>' + ALL_PRODUCTS.map(p => 
+                `<option value="${p.id}" data-price="${p.unit_price}" data-hsn="${p.hsn_code || ''}" data-tax="${p.tax_rate || 18.00}">${p.sku} - ${p.name} (${CURRENCY_SYM}${p.unit_price})</option>`
+            ).join('');
 
             const row = document.createElement('div');
             row.className = 'quote-item-row';
-            row.style = 'display: grid; grid-template-columns: 3fr 1fr 1.5fr 1fr 1fr auto; gap: 8px; margin-bottom: 8px; align-items: center;';
+            row.style = 'display: grid; grid-template-columns: 2.5fr 1.2fr 1fr 1.2fr 1fr 1.2fr auto; gap: 8px; margin-bottom: 10px; align-items: center; background: rgba(255,255,255,0.02); padding: 8px; border-radius: 6px;';
             row.innerHTML = `
-                <select class="form-control item-product" onchange="onQuoteProductChange(this)">
-                    ${productOptions}
-                </select>
-                <input type="number" class="form-control item-qty" value="1" min="1" placeholder="Qty" oninput="recalcQuoteTotals()">
-                <input type="number" step="0.01" class="form-control item-price" value="${ALL_PRODUCTS[0] ? ALL_PRODUCTS[0].unit_price : 1000}" placeholder="Price" oninput="recalcQuoteTotals()">
-                <input type="number" step="0.5" class="form-control item-disc" value="0" min="0" max="100" placeholder="Disc %" oninput="recalcQuoteTotals()">
-                <input type="number" step="0.5" class="form-control item-tax" value="10" min="0" max="50" placeholder="Tax %" oninput="recalcQuoteTotals()">
-                <button type="button" onclick="this.parentElement.remove(); recalcQuoteTotals();" style="background:none; border:none; color:#fb7185; cursor:pointer;"><i data-lucide="trash-2" style="width:16px; height:16px;"></i></button>
+                <div>
+                    <label style="font-size:10px; color:#64748b; text-transform:uppercase;">Product / SKU</label>
+                    <select class="form-control quote-item-product" onchange="onQuoteProductChange(this)">
+                        ${productOptions}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#64748b; text-transform:uppercase;">HSN / SAC</label>
+                    <input type="text" class="form-control quote-item-hsn" placeholder="HSN" value="${ALL_PRODUCTS[0] ? (ALL_PRODUCTS[0].hsn_code || '8471') : '8471'}">
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#64748b; text-transform:uppercase;">Qty</label>
+                    <input type="number" class="form-control quote-item-qty" value="1" min="1" oninput="recalcQuoteTotals()">
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#64748b; text-transform:uppercase;">Rate (${CURRENCY_SYM})</label>
+                    <input type="number" step="0.01" class="form-control quote-item-price" value="${ALL_PRODUCTS[0] ? ALL_PRODUCTS[0].unit_price : 1000}" oninput="recalcQuoteTotals()">
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#64748b; text-transform:uppercase;">Disc %</label>
+                    <input type="number" step="0.5" class="form-control quote-item-disc" value="0" min="0" max="100" oninput="recalcQuoteTotals()">
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#64748b; text-transform:uppercase;">GST Slab</label>
+                    <select class="form-control quote-item-tax" onchange="recalcQuoteTotals()">
+                        <option value="18.00">18% GST</option>
+                        <option value="12.00">12% GST</option>
+                        <option value="5.00">5% GST</option>
+                        <option value="28.00">28% GST</option>
+                        <option value="0.00">0% GST</option>
+                    </select>
+                </div>
+                <div style="padding-top: 16px;">
+                    <button type="button" onclick="this.closest('.quote-item-row').remove(); recalcQuoteTotals();" style="background:none; border:none; color:#fb7185; cursor:pointer;" title="Remove Item">
+                        <i data-lucide="trash-2" style="width:16px; height:16px;"></i>
+                    </button>
+                </div>
             `;
 
             container.appendChild(row);
@@ -4520,61 +4823,94 @@
         }
 
         function onQuoteProductChange(selectEl) {
-            const selectedOpt = selectEl.options[selectEl.selectedIndex];
-            const price = selectedOpt.getAttribute('data-price');
+            const opt = selectEl.options[selectEl.selectedIndex];
+            if (!opt || !opt.value) return;
+            const price = opt.getAttribute('data-price') || 0;
+            const hsn = opt.getAttribute('data-hsn') || '';
+            const tax = opt.getAttribute('data-tax') || '18.00';
+
             const row = selectEl.closest('.quote-item-row');
-            row.querySelector('.item-price').value = price || 0;
+            row.querySelector('.quote-item-price').value = price;
+            if (hsn) row.querySelector('.quote-item-hsn').value = hsn;
+            row.querySelector('.quote-item-tax').value = tax;
             recalcQuoteTotals();
         }
 
         function recalcQuoteTotals() {
+            const posSelect = document.getElementById('quote_place_of_supply');
+            const buyerState = posSelect ? posSelect.value : COMPANY_STATE_CODE;
+            const isIntraState = (buyerState === COMPANY_STATE_CODE);
+
             let subtotal = 0;
-            let taxTotal = 0;
+            let totalCgst = 0;
+            let totalSgst = 0;
+            let totalIgst = 0;
 
             document.querySelectorAll('.quote-item-row').forEach(row => {
-                const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
-                const price = parseFloat(row.querySelector('.item-price').value) || 0;
-                const disc = parseFloat(row.querySelector('.item-disc').value) || 0;
-                const tax = parseFloat(row.querySelector('.item-tax').value) || 0;
+                const qty = parseFloat(row.querySelector('.quote-item-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.quote-item-price').value) || 0;
+                const disc = parseFloat(row.querySelector('.quote-item-disc').value) || 0;
+                const taxRate = parseFloat(row.querySelector('.quote-item-tax').value) || 0;
 
                 const base = qty * price;
-                const discounted = base - (base * (disc / 100));
-                const itemTax = discounted * (tax / 100);
+                const discountAmount = base * (disc / 100);
+                const taxable = base - discountAmount;
+                const taxAmt = taxable * (taxRate / 100);
 
-                subtotal += discounted;
-                taxTotal += itemTax;
+                subtotal += taxable;
+
+                if (isIntraState) {
+                    totalCgst += taxAmt / 2;
+                    totalSgst += taxAmt / 2;
+                } else {
+                    totalIgst += taxAmt;
+                }
             });
 
-            const grandTotal = subtotal + taxTotal;
-            document.getElementById('quote_subtotal_preview').innerText = '$' + subtotal.toFixed(2);
-            document.getElementById('quote_tax_preview').innerText = '$' + taxTotal.toFixed(2);
-            document.getElementById('quote_total_preview').innerText = '$' + grandTotal.toFixed(2);
+            const grandTotal = subtotal + totalCgst + totalSgst + totalIgst;
+
+            const subPreview = document.getElementById('quote_subtotal_preview');
+            const cgstPreview = document.getElementById('quote_cgst_preview');
+            const sgstPreview = document.getElementById('quote_sgst_preview');
+            const igstPreview = document.getElementById('quote_igst_preview');
+            const totalPreview = document.getElementById('quote_total_preview');
+
+            if (subPreview) subPreview.innerText = CURRENCY_SYM + subtotal.toFixed(2);
+            if (cgstPreview) cgstPreview.innerText = CURRENCY_SYM + totalCgst.toFixed(2);
+            if (sgstPreview) sgstPreview.innerText = CURRENCY_SYM + totalSgst.toFixed(2);
+            if (igstPreview) igstPreview.innerText = CURRENCY_SYM + totalIgst.toFixed(2);
+            if (totalPreview) totalPreview.innerText = CURRENCY_SYM + grandTotal.toFixed(2);
         }
 
         async function submitCreateQuote(e) {
             e.preventDefault();
             const customerId = document.getElementById('quote_customer_id').value;
+            const stateCode = document.getElementById('quote_place_of_supply').value;
             const validUntil = e.target.valid_until.value;
 
             const items = [];
             document.querySelectorAll('.quote-item-row').forEach(row => {
-                const pId = row.querySelector('.item-product').value;
-                const qty = parseFloat(row.querySelector('.item-qty').value) || 1;
-                const price = parseFloat(row.querySelector('.item-price').value) || 0;
-                const disc = parseFloat(row.querySelector('.item-disc').value) || 0;
-                const tax = parseFloat(row.querySelector('.item-tax').value) || 0;
+                const pId = row.querySelector('.quote-item-product').value;
+                const hsn = row.querySelector('.quote-item-hsn').value;
+                const qty = parseFloat(row.querySelector('.quote-item-qty').value) || 1;
+                const price = parseFloat(row.querySelector('.quote-item-price').value) || 0;
+                const disc = parseFloat(row.querySelector('.quote-item-disc').value) || 0;
+                const tax = parseFloat(row.querySelector('.quote-item-tax').value) || 0;
 
-                items.push({
-                    product_id: parseInt(pId),
-                    quantity: qty,
-                    unit_price: price,
-                    discount_percent: disc,
-                    tax_rate: tax
-                });
+                if (pId) {
+                    items.push({
+                        product_id: parseInt(pId),
+                        hsn_code: hsn,
+                        quantity: qty,
+                        unit_price: price,
+                        discount_percent: disc,
+                        tax_rate: tax
+                    });
+                }
             });
 
             if (items.length === 0) {
-                alert('Please add at least one line item');
+                showToast('Please add at least one line item product', 'error');
                 return;
             }
 
@@ -4588,6 +4924,7 @@
                     },
                     body: JSON.stringify({
                         customer_id: parseInt(customerId),
+                        state_code: stateCode,
                         valid_until: validUntil,
                         items: items
                     })
@@ -5559,63 +5896,297 @@
         }
 
         // 17. Document Printable / PDF Format Previews (Made for India GST Compliance)
+        window.activeViewingDocType = 'invoice';
+        window.activeViewingDocId = null;
+
+        function openDocumentPrintWindow() {
+            const id = window.activeViewingDocId;
+            const type = window.activeViewingDocType || 'invoice';
+            if (id) {
+                const url = type === 'quote' ? `/quotes/${id}/print` : `/invoices/${id}/print`;
+                window.open(url, '_blank');
+            } else {
+                showToast('No active document selected for printing', 'error');
+            }
+        }
+
+        function openInvoicePrintWindow(invoiceId = null) {
+            if (invoiceId) {
+                window.activeViewingDocId = invoiceId;
+                window.activeViewingDocType = 'invoice';
+            }
+            openDocumentPrintWindow();
+        }
+
+        function openQuotePrintWindow(quoteId = null) {
+            if (quoteId) {
+                window.activeViewingDocId = quoteId;
+                window.activeViewingDocType = 'quote';
+            }
+            openDocumentPrintWindow();
+        }
+
+        function printTaxInvoiceDirect(docId = null) {
+            const id = docId || window.activeViewingDocId;
+            const type = window.activeViewingDocType || 'invoice';
+            if (!id) {
+                window.print();
+                return;
+            }
+
+            const url = type === 'quote' ? `/quotes/${id}/print?autoprint=1` : `/invoices/${id}/print?autoprint=1`;
+            const iframe = document.getElementById('printInvoiceIframe');
+            if (iframe) {
+                iframe.src = url;
+            } else {
+                window.open(url, '_blank');
+            }
+        }
+
         async function viewQuotePdf(quoteId, quoteNum) {
             try {
+                window.activeViewingDocId = quoteId;
+                window.activeViewingDocType = 'quote';
+
                 const res = await fetch(`/api/quotes/${quoteId}/pdf`);
                 const data = await res.json();
                 const q = data.quote;
                 const c = data.company;
+                const b = data.buyer;
+                const hsnSummary = data.hsn_summary || [];
+                const words = data.amount_in_words || '';
+                const sym = c.currency_symbol || CURRENCY_SYM;
 
-                document.getElementById('pdfModalTitle').innerText = 'Quotation ' + quoteNum;
+                const isIntra = (q.gst_type === 'intra_state' || b.is_intra_state);
+                const itemsCount = (q.items || []).length;
+
+                document.getElementById('pdfModalTitle').innerHTML = `
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span>Commercial Quotation & Proposal — ${quoteNum}</span>
+                        <span class="badge badge-info" style="font-size:10px;">${itemsCount} Line ${itemsCount === 1 ? 'Item' : 'Items'}</span>
+                    </div>
+                `;
+
+                let totalQty = 0;
+                let totalTaxableVal = 0;
+                let totalCgstVal = 0;
+                let totalSgstVal = 0;
+                let totalIgstVal = 0;
+
                 let html = `
-                    <div style="display:flex; justify-content:space-between; border-bottom:2px solid #6366f1; padding-bottom:15px; margin-bottom:20px; color:#1e293b;">
+                    <div style="border-bottom:2px solid #4f46e5; padding-bottom:12px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:flex-start; color:#0f172a;">
                         <div>
-                            <h2 style="font-size:22px; font-weight:800; color:#1e293b;">${c.name}</h2>
-                            <p style="font-size:12px; color:#64748b;">${c.address}</p>
-                            <p style="font-size:12px; color:#64748b;">Phone: ${c.phone} | Email: ${c.email}</p>
+                            <h2 style="font-size:20px; font-weight:900; color:#4338ca; margin:0 0 2px 0;">${c.name}</h2>
+                            <p style="font-size:11px; color:#64748b; margin:0 0 4px 0;">${c.tagline || 'Enterprise GST Platform'}</p>
+                            <p style="font-size:11px; color:#334155; margin:1px 0;">${c.address}, ${c.city}, ${c.state} - ${c.postal_code}</p>
+                            <p style="font-size:11px; color:#334155; margin:1px 0;">
+                                <strong>GSTIN:</strong> <code style="color:#4f46e5; font-weight:800;">${c.gstin}</code> | 
+                                <strong>PAN:</strong> <code>${c.pan}</code> | 
+                                <strong>State Code:</strong> ${c.state_code} (${c.state})
+                            </p>
+                            <p style="font-size:11px; color:#334155; margin:1px 0;">Phone: ${c.phone} | Email: ${c.email}</p>
                         </div>
                         <div style="text-align:right;">
-                            <h1 style="font-size:24px; font-weight:800; color:#6366f1;">PROPOSAL / QUOTE</h1>
-                            <p style="font-size:13px; font-weight:700;">#${q.quote_number}</p>
-                            <p style="font-size:12px; color:#64748b;">Date: ${new Date(q.created_at).toLocaleDateString()}</p>
+                            <div style="display:inline-block; background:#4f46e5; color:#ffffff; font-weight:900; font-size:12px; padding:3px 12px; border-radius:4px; margin-bottom:4px;">PRICE QUOTATION</div>
+                            <div style="font-size:14px; font-weight:900; color:#0f172a; font-family:monospace;">#${q.quote_number}</div>
+                            <div style="font-size:11px; color:#334155;">Date: <strong>${new Date(q.created_at).toLocaleDateString('en-GB')}</strong></div>
+                            <div style="font-size:11px; color:#4f46e5;">Valid Until: <strong>${q.valid_until ? new Date(q.valid_until).toLocaleDateString('en-GB') : '30 Days'}</strong></div>
                         </div>
                     </div>
-                    <div style="margin-bottom:20px; color:#1e293b;">
-                        <h4 style="font-size:12px; text-transform:uppercase; color:#64748b;">Prepared For:</h4>
-                        <p style="font-size:15px; font-weight:700; color:#1e293b;">${q.customer ? q.customer.company_name : 'Customer'}</p>
-                        <p style="font-size:13px; color:#64748b;">Attn: ${q.contact ? q.contact.first_name + ' ' + q.contact.last_name : 'Procurement Team'}</p>
+
+                    <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:12px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:10px 12px; margin-bottom:12px; color:#0f172a;">
+                        <div>
+                            <div style="font-size:9.5px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:3px;">Proposal Prepared For:</div>
+                            <div style="font-size:13px; font-weight:800; color:#0f172a;">${q.customer ? q.customer.company_name : 'Customer'}</div>
+                            ${q.contact ? `<div style="font-size:11px; font-weight:700; color:#4338ca;">Attn: ${q.contact.first_name} ${q.contact.last_name} (${q.contact.title || 'Procurement'})</div>` : ''}
+                            <div style="font-size:10.5px; color:#475569;">${q.customer ? (q.customer.billing_street || q.customer.address_street || '') : ''}</div>
+                            <div style="font-size:10.5px; color:#475569;">${q.customer ? (q.customer.billing_city || q.customer.address_city || '') : ''}, ${b.state} - ${q.customer ? (q.customer.postal_code || '') : ''}</div>
+                            <div style="margin-top:4px; font-size:10.5px;">
+                                <strong>GSTIN / UIN:</strong> <code style="color:#4f46e5; font-weight:800;">${(q.customer && q.customer.gst_number) ? q.customer.gst_number : 'Unregistered Entity'}</code>
+                            </div>
+                            <div style="font-size:10.5px; color:#475569;">
+                                <strong>PAN:</strong> <code>${(q.customer && q.customer.pan_number) ? q.customer.pan_number : 'N/A'}</code> | 
+                                <strong>State Code:</strong> ${b.state_code} (${b.state})
+                            </div>
+                        </div>
+                        <div style="border-left:1px solid #cbd5e1; padding-left:12px;">
+                            <div style="font-size:9.5px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:3px;">Proposal Parameters:</div>
+                            <div style="margin-bottom:2px; font-size:11px;"><strong>Place of Supply:</strong> <span style="font-weight:700;">${b.state} (${b.state_code})</span></div>
+                            <div style="margin-bottom:2px; font-size:11px;">
+                                <strong>GST Treatment:</strong> 
+                                <span style="font-weight:700; color:${isIntra ? '#16a34a' : '#9333ea'};">${isIntra ? 'Intra-State (CGST + SGST)' : 'Inter-State (IGST)'}</span>
+                            </div>
+                            <div style="margin-bottom:2px; font-size:11px;"><strong>Status:</strong> <span style="font-weight:800; text-transform:uppercase; color:#4f46e5;">${q.status}</span></div>
+                            <div style="margin-bottom:2px; font-size:11px;"><strong>Assigned:</strong> ${q.assigned_user ? q.assigned_user.name : 'Commercial Sales Rep'}</div>
+                        </div>
                     </div>
-                    <table style="width:100%; border-collapse:collapse; margin-bottom:20px; font-size:13px; color:#1e293b;">
+
+                    <table class="items-table" style="width:100%; border-collapse:collapse; margin-bottom:12px; font-size:10.5px; border:1px solid #cbd5e1;">
                         <thead>
-                            <tr style="background:#f8fafc; border-bottom:1px solid #cbd5e1; text-align:left;">
-                                <th style="padding:10px; color:#475569;">Description</th>
-                                <th style="padding:10px; color:#475569;">Qty</th>
-                                <th style="padding:10px; color:#475569;">Unit Price</th>
-                                <th style="padding:10px; color:#475569;">Total</th>
+                            <tr style="background:#0f172a; color:#ffffff; font-size:9.5px; text-transform:uppercase;">
+                                <th style="padding:6px 5px; border:1px solid #334155; text-align:center; width:25px;">#</th>
+                                <th style="padding:6px 5px; border:1px solid #334155; text-align:left;">Description of Goods / Services</th>
+                                <th style="padding:6px 5px; border:1px solid #334155; text-align:center; width:60px;">HSN/SAC</th>
+                                <th style="padding:6px 5px; border:1px solid #334155; text-align:center; width:45px;">Qty</th>
+                                <th style="padding:6px 5px; border:1px solid #334155; text-align:right; width:65px;">Rate</th>
+                                <th style="padding:6px 5px; border:1px solid #334155; text-align:right; width:40px;">Disc</th>
+                                <th style="padding:6px 5px; border:1px solid #334155; text-align:right; width:75px;">Taxable (${sym})</th>
+                                ${isIntra ? `
+                                    <th style="padding:6px 5px; border:1px solid #334155; text-align:right; width:65px;">CGST</th>
+                                    <th style="padding:6px 5px; border:1px solid #334155; text-align:right; width:65px;">SGST</th>
+                                ` : `
+                                    <th style="padding:6px 5px; border:1px solid #334155; text-align:right; width:90px;" colspan="2">IGST</th>
+                                `}
+                                <th style="padding:6px 5px; border:1px solid #334155; text-align:right; width:80px;">Total (${sym})</th>
                             </tr>
                         </thead>
                         <tbody>
                 `;
 
-                (q.items || []).forEach(it => {
+                (q.items || []).forEach((it, idx) => {
+                    const hsn = it.hsn_code || (it.product ? it.product.hsn_code : 'N/A');
+                    const desc = it.description || (it.product ? it.product.name : 'Product');
+                    const qty = parseInt(it.quantity) || 1;
+                    const rate = parseFloat(it.unit_price) || 0;
+                    const disc = parseFloat(it.discount_percent) || 0;
+                    const taxRate = parseFloat(it.tax_rate) || 18;
+                    const taxable = parseFloat(it.taxable_value) || ((qty * rate) * (1 - (disc / 100)));
+                    const cgst = it.cgst_amount !== null && it.cgst_amount !== undefined ? parseFloat(it.cgst_amount) : (taxable * (taxRate / 200));
+                    const sgst = it.sgst_amount !== null && it.sgst_amount !== undefined ? parseFloat(it.sgst_amount) : (taxable * (taxRate / 200));
+                    const igst = it.igst_amount !== null && it.igst_amount !== undefined ? parseFloat(it.igst_amount) : (taxable * (taxRate / 100));
+                    const total = parseFloat(it.total) || (taxable + (isIntra ? (cgst + sgst) : igst));
+
+                    totalQty += qty;
+                    totalTaxableVal += taxable;
+                    totalCgstVal += cgst;
+                    totalSgstVal += sgst;
+                    totalIgstVal += igst;
+
                     html += `
-                        <tr style="border-bottom:1px solid #f1f5f9;">
-                            <td style="padding:10px; color:#1e293b; font-weight:600;">${it.description || (it.product ? it.product.name : 'Product')}</td>
-                            <td style="padding:10px; color:#475569;">${it.quantity}</td>
-                            <td style="padding:10px; color:#475569;">${CURRENCY_SYM}${parseFloat(it.unit_price).toFixed(2)}</td>
-                            <td style="padding:10px; color:#1e293b; font-weight:700;">${CURRENCY_SYM}${parseFloat(it.total).toFixed(2)}</td>
+                        <tr style="background:${idx % 2 === 1 ? '#f8fafc' : '#ffffff'}; border-bottom:1px solid #e2e8f0;">
+                            <td style="padding:5px; border:1px solid #e2e8f0; text-align:center; color:#64748b;">${idx + 1}</td>
+                            <td style="padding:5px; border:1px solid #e2e8f0;">
+                                <div style="font-weight:700; color:#0f172a;">${desc}</div>
+                                ${it.product && it.product.sku ? `<div style="font-size:9px; color:#64748b; font-family:monospace;">SKU: ${it.product.sku}</div>` : ''}
+                            </td>
+                            <td style="padding:5px; border:1px solid #e2e8f0; text-align:center; font-family:monospace; font-weight:700;">${hsn}</td>
+                            <td style="padding:5px; border:1px solid #e2e8f0; text-align:center;">${qty}</td>
+                            <td style="padding:5px; border:1px solid #e2e8f0; text-align:right;">${rate.toFixed(2)}</td>
+                            <td style="padding:5px; border:1px solid #e2e8f0; text-align:right;">${disc}%</td>
+                            <td style="padding:5px; border:1px solid #e2e8f0; text-align:right; font-weight:700;">${taxable.toFixed(2)}</td>
+                            ${isIntra ? `
+                                <td style="padding:5px; border:1px solid #e2e8f0; text-align:right; font-size:10px;">${(taxRate / 2).toFixed(1)}% (${cgst.toFixed(2)})</td>
+                                <td style="padding:5px; border:1px solid #e2e8f0; text-align:right; font-size:10px;">${(taxRate / 2).toFixed(1)}% (${sgst.toFixed(2)})</td>
+                            ` : `
+                                <td style="padding:5px; border:1px solid #e2e8f0; text-align:right; font-size:10px;" colspan="2">${taxRate.toFixed(1)}% (${igst.toFixed(2)})</td>
+                            `}
+                            <td style="padding:5px; border:1px solid #e2e8f0; text-align:right; font-weight:800; color:#0f172a;">${total.toFixed(2)}</td>
                         </tr>
                     `;
                 });
 
                 html += `
                         </tbody>
+                        <tfoot>
+                            <tr style="background:#f1f5f9; font-weight:800; border-top:2px solid #cbd5e1;">
+                                <td colspan="3" style="padding:6px 5px; border:1px solid #cbd5e1; text-align:right;">Total (${itemsCount} Items):</td>
+                                <td style="padding:6px 5px; border:1px solid #cbd5e1; text-align:center;">${totalQty}</td>
+                                <td colspan="2" style="padding:6px 5px; border:1px solid #cbd5e1;"></td>
+                                <td style="padding:6px 5px; border:1px solid #cbd5e1; text-align:right;">${totalTaxableVal.toFixed(2)}</td>
+                                ${isIntra ? `
+                                    <td style="padding:6px 5px; border:1px solid #cbd5e1; text-align:right;">${(parseFloat(q.cgst_total) || totalCgstVal).toFixed(2)}</td>
+                                    <td style="padding:6px 5px; border:1px solid #cbd5e1; text-align:right;">${(parseFloat(q.sgst_total) || totalSgstVal).toFixed(2)}</td>
+                                ` : `
+                                    <td style="padding:6px 5px; border:1px solid #cbd5e1; text-align:right;" colspan="2">${(parseFloat(q.igst_total) || totalIgstVal).toFixed(2)}</td>
+                                `}
+                                <td style="padding:6px 5px; border:1px solid #cbd5e1; text-align:right;">${parseFloat(q.total).toFixed(2)}</td>
+                            </tr>
+                        </tfoot>
                     </table>
-                    <div style="display:flex; justify-content:flex-end; color:#1e293b;">
-                        <div style="width:250px; text-align:right;">
-                            <p style="font-size:13px; color:#64748b; margin-bottom:4px;">Subtotal: <strong>${CURRENCY_SYM}${parseFloat(q.subtotal).toFixed(2)}</strong></p>
-                            <p style="font-size:13px; color:#64748b; margin-bottom:4px;">Estimated Tax: <strong>${CURRENCY_SYM}${parseFloat(q.tax_total).toFixed(2)}</strong></p>
-                            <h3 style="font-size:18px; font-weight:800; color:#1e293b; border-top:1px solid #cbd5e1; padding-top:6px;">Total: ${CURRENCY_SYM}${parseFloat(q.total).toFixed(2)}</h3>
+
+                    <div class="avoid-page-break" style="display:grid; grid-template-columns: 1.25fr 1fr; gap:12px; margin-bottom:10px;">
+                        <div>
+                            <div style="font-size:9.5px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:3px;">HSN / SAC Tax Breakdown:</div>
+                            <table style="width:100%; border-collapse:collapse; font-size:9.5px; border:1px solid #cbd5e1; background:#f8fafc;">
+                                <thead>
+                                    <tr style="background:#e2e8f0; color:#1e293b; font-weight:800;">
+                                        <th style="padding:4px 5px; border:1px solid #cbd5e1;">HSN/SAC</th>
+                                        <th style="padding:4px 5px; border:1px solid #cbd5e1; text-align:right;">Taxable</th>
+                                        ${isIntra ? `
+                                            <th style="padding:4px 5px; border:1px solid #cbd5e1; text-align:right;">CGST</th>
+                                            <th style="padding:4px 5px; border:1px solid #cbd5e1; text-align:right;">SGST</th>
+                                        ` : `
+                                            <th style="padding:4px 5px; border:1px solid #cbd5e1; text-align:right;">IGST</th>
+                                        `}
+                                        <th style="padding:4px 5px; border:1px solid #cbd5e1; text-align:right;">Total Tax</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+
+                hsnSummary.forEach(h => {
+                    html += `
+                        <tr>
+                            <td style="padding:3px 5px; border:1px solid #e2e8f0; font-family:monospace; font-weight:700;">${h.hsn_code}</td>
+                            <td style="padding:3px 5px; border:1px solid #e2e8f0; text-align:right;">${parseFloat(h.taxable_value).toFixed(2)}</td>
+                            ${isIntra ? `
+                                <td style="padding:3px 5px; border:1px solid #e2e8f0; text-align:right;">${h.cgst_rate}% (${parseFloat(h.cgst_amount).toFixed(2)})</td>
+                                <td style="padding:3px 5px; border:1px solid #e2e8f0; text-align:right;">${h.sgst_rate}% (${parseFloat(h.sgst_amount).toFixed(2)})</td>
+                            ` : `
+                                <td style="padding:3px 5px; border:1px solid #e2e8f0; text-align:right;">${h.igst_rate}% (${parseFloat(h.igst_amount).toFixed(2)})</td>
+                            `}
+                            <td style="padding:3px 5px; border:1px solid #e2e8f0; text-align:right; font-weight:700;">${parseFloat(h.total_tax).toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                                </tbody>
+                            </table>
+                            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px; padding:6px 8px; margin-top:8px;">
+                                <div style="font-size:9.5px; font-weight:800; color:#64748b; text-transform:uppercase;">Total Proposal Value in Words:</div>
+                                <div style="font-size:11px; font-weight:800; color:#4338ca;">${words}</div>
+                            </div>
+                        </div>
+
+                        <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:10px 12px; font-size:11px; color:#334155;">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                                <span>Taxable Value:</span>
+                                <strong style="font-family:monospace;">${sym}${(parseFloat(q.subtotal) - parseFloat(q.discount_total)).toFixed(2)}</strong>
+                            </div>
+                            ${isIntra ? `
+                                <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                                    <span>Central GST (CGST):</span>
+                                    <strong style="font-family:monospace;">${sym}${parseFloat(q.cgst_total || (q.tax_total / 2)).toFixed(2)}</strong>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                                    <span>State GST (SGST):</span>
+                                    <strong style="font-family:monospace;">${sym}${parseFloat(q.sgst_total || (q.tax_total / 2)).toFixed(2)}</strong>
+                                </div>
+                            ` : `
+                                <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                                    <span>Integrated GST (IGST):</span>
+                                    <strong style="font-family:monospace;">${sym}${parseFloat(q.igst_total || q.tax_total).toFixed(2)}</strong>
+                                </div>
+                            `}
+                            <div style="border-top:2px solid #0f172a; padding-top:5px; margin-top:5px; font-size:14px; font-weight:900; color:#0f172a; display:flex; justify-content:space-between;">
+                                <span>Grand Proposal Total:</span>
+                                <span style="font-family:monospace;">${sym}${parseFloat(q.total).toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="avoid-page-break" style="display:grid; grid-template-columns:1.3fr 1fr; gap:12px; border:1px solid #cbd5e1; border-radius:6px; padding:8px 12px; background:#f8fafc; font-size:10px; margin-bottom:8px;">
+                        <div>
+                            <div style="font-size:9.5px; font-weight:800; color:#0f172a; text-transform:uppercase; margin-bottom:2px;">Direct Settlement & Advance Remittance:</div>
+                            <div><strong>Bank:</strong> ${c.bank_name}</div>
+                            <div><strong>A/C No:</strong> <span style="font-family:monospace; font-weight:800;">${c.bank_account_no}</span> | <strong>IFSC:</strong> <span style="font-family:monospace; font-weight:700; color:#4f46e5;">${c.bank_ifsc}</span></div>
+                            <div><strong>Branch:</strong> ${c.bank_branch}</div>
+                            <div><strong>UPI VPA:</strong> <code style="color:#4338ca; font-weight:700;">${c.upi_id}</code></div>
+                        </div>
+                        <div style="color:#475569;">
+                            <div style="font-size:9.5px; font-weight:800; color:#0f172a; text-transform:uppercase; margin-bottom:2px;">Proposal Notes & Validity:</div>
+                            <div>${q.notes || 'Quotation valid for 30 calendar days from issue. Prices subject to applicable Indian GST tax rates at time of dispatch.'}</div>
                         </div>
                     </div>
                 `;
@@ -5624,11 +6195,13 @@
                 openModal('pdfModal');
             } catch (err) {
                 console.error(err);
+                showToast('Failed to load proposal details', 'error');
             }
         }
 
         async function viewInvoicePdf(invoiceId, invoiceNum) {
             try {
+                window.activeViewingInvoiceId = invoiceId;
                 const res = await fetch(`/api/invoices/${invoiceId}/pdf`);
                 const data = await res.json();
                 const inv = data.invoice;
@@ -5639,218 +6212,259 @@
                 const sym = c.currency_symbol || CURRENCY_SYM;
 
                 const isIntra = (inv.gst_type === 'intra_state' || b.is_intra_state);
+                const itemsCount = (inv.items || []).length;
 
-                document.getElementById('pdfModalTitle').innerText = 'Indian GST Tax Invoice — ' + invoiceNum;
+                document.getElementById('pdfModalTitle').innerHTML = `
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span>Indian GST Tax Invoice — ${invoiceNum}</span>
+                        <span class="badge badge-info" style="font-size:10px;">${itemsCount} Line ${itemsCount === 1 ? 'Item' : 'Items'}</span>
+                    </div>
+                `;
                 
+                let totalQty = 0;
+                let totalTaxableVal = 0;
+                let totalCgstVal = 0;
+                let totalSgstVal = 0;
+                let totalIgstVal = 0;
+
                 let itemRowsHtml = (inv.items || []).map((it, idx) => {
                     const hsn = it.hsn_code || (it.product ? it.product.hsn_code : 'N/A');
                     const desc = it.description || (it.product ? it.product.name : 'Goods / Service');
-                    const taxable = parseFloat(it.taxable_value || (it.quantity * it.unit_price)).toFixed(2);
+                    const qty = parseFloat(it.quantity || 1);
+                    const unitPrice = parseFloat(it.unit_price || 0);
+                    const disc = parseFloat(it.discount_percent || 0);
+                    const taxable = parseFloat(it.taxable_value !== undefined && it.taxable_value !== null ? it.taxable_value : (qty * unitPrice * (1 - disc/100)));
                     const rate = parseFloat(it.tax_rate || 18);
                     
+                    totalQty += qty;
+                    totalTaxableVal += taxable;
+
                     let taxSplitHtml = '';
                     if (isIntra) {
                         const halfRate = rate / 2;
-                        const cgstAmt = (it.cgst_amount !== undefined && it.cgst_amount !== null) ? parseFloat(it.cgst_amount).toFixed(2) : (taxable * (halfRate/100)).toFixed(2);
-                        const sgstAmt = (it.sgst_amount !== undefined && it.sgst_amount !== null) ? parseFloat(it.sgst_amount).toFixed(2) : (taxable * (halfRate/100)).toFixed(2);
+                        const cgstAmt = (it.cgst_amount !== undefined && it.cgst_amount !== null) ? parseFloat(it.cgst_amount) : (taxable * (halfRate/100));
+                        const sgstAmt = (it.sgst_amount !== undefined && it.sgst_amount !== null) ? parseFloat(it.sgst_amount) : (taxable * (halfRate/100));
+                        totalCgstVal += cgstAmt;
+                        totalSgstVal += sgstAmt;
                         taxSplitHtml = `
-                            <td style="padding:8px 6px; text-align:right; font-size:11px;">${halfRate}% (${cgstAmt})</td>
-                            <td style="padding:8px 6px; text-align:right; font-size:11px;">${halfRate}% (${sgstAmt})</td>
+                            <td style="padding:6px 5px; text-align:right; font-size:10.5px; border:1px solid #e2e8f0;">${halfRate}% (${cgstAmt.toFixed(2)})</td>
+                            <td style="padding:6px 5px; text-align:right; font-size:10.5px; border:1px solid #e2e8f0;">${halfRate}% (${sgstAmt.toFixed(2)})</td>
                         `;
                     } else {
-                        const igstAmt = (it.igst_amount !== undefined && it.igst_amount !== null) ? parseFloat(it.igst_amount).toFixed(2) : (taxable * (rate/100)).toFixed(2);
+                        const igstAmt = (it.igst_amount !== undefined && it.igst_amount !== null) ? parseFloat(it.igst_amount) : (taxable * (rate/100));
+                        totalIgstVal += igstAmt;
                         taxSplitHtml = `
-                            <td style="padding:8px 6px; text-align:right; font-size:11px;" colspan="2">${rate}% (${igstAmt})</td>
+                            <td style="padding:6px 5px; text-align:right; font-size:10.5px; border:1px solid #e2e8f0;" colspan="2">${rate}% (${igstAmt.toFixed(2)})</td>
                         `;
                     }
 
                     return `
-                        <tr style="border-bottom:1px solid #e2e8f0; font-size:12px;">
-                            <td style="padding:8px 6px; text-align:center; color:#64748b;">${idx + 1}</td>
-                            <td style="padding:8px 6px; font-weight:600; color:#0f172a;">${desc}</td>
-                            <td style="padding:8px 6px; text-align:center; font-family:monospace; font-weight:600; color:#334155;">${hsn}</td>
-                            <td style="padding:8px 6px; text-align:center;">${it.quantity} ${it.product ? (it.product.unit || 'units') : 'units'}</td>
-                            <td style="padding:8px 6px; text-align:right;">${sym}${parseFloat(it.unit_price).toFixed(2)}</td>
-                            <td style="padding:8px 6px; text-align:right;">${it.discount_percent || 0}%</td>
-                            <td style="padding:8px 6px; text-align:right; font-weight:700;">${sym}${taxable}</td>
+                        <tr style="font-size:11px;">
+                            <td style="padding:6px 5px; text-align:center; color:#64748b; border:1px solid #e2e8f0;">${idx + 1}</td>
+                            <td style="padding:6px 5px; font-weight:600; color:#0f172a; border:1px solid #e2e8f0;">
+                                ${desc}
+                                ${it.product && it.product.sku ? `<div style="font-size:9.5px; color:#64748b; font-family:monospace;">SKU: ${it.product.sku}</div>` : ''}
+                            </td>
+                            <td style="padding:6px 5px; text-align:center; font-family:monospace; font-weight:700; color:#334155; border:1px solid #e2e8f0;">${hsn}</td>
+                            <td style="padding:6px 5px; text-align:center; border:1px solid #e2e8f0;">${qty} ${it.product ? (it.product.unit || 'units') : 'units'}</td>
+                            <td style="padding:6px 5px; text-align:right; border:1px solid #e2e8f0;">${sym}${unitPrice.toFixed(2)}</td>
+                            <td style="padding:6px 5px; text-align:right; border:1px solid #e2e8f0;">${disc}%</td>
+                            <td style="padding:6px 5px; text-align:right; font-weight:700; border:1px solid #e2e8f0;">${sym}${taxable.toFixed(2)}</td>
                             ${taxSplitHtml}
-                            <td style="padding:8px 6px; text-align:right; font-weight:800; color:#0f172a;">${sym}${parseFloat(it.total).toFixed(2)}</td>
+                            <td style="padding:6px 5px; text-align:right; font-weight:800; color:#0f172a; border:1px solid #e2e8f0;">${sym}${parseFloat(it.total).toFixed(2)}</td>
                         </tr>
                     `;
                 }).join('');
 
                 let hsnSummaryRows = hsnSummary.map(h => `
-                    <tr style="border-bottom:1px solid #f1f5f9; font-size:11px;">
-                        <td style="padding:6px; font-family:monospace; font-weight:700;">${h.hsn_code}</td>
-                        <td style="padding:6px; text-align:right;">${sym}${parseFloat(h.taxable_value).toFixed(2)}</td>
-                        <td style="padding:6px; text-align:right;">${h.cgst_rate}% (${sym}${parseFloat(h.cgst_amount).toFixed(2)})</td>
-                        <td style="padding:6px; text-align:right;">${h.sgst_rate}% (${sym}${parseFloat(h.sgst_amount).toFixed(2)})</td>
-                        <td style="padding:6px; text-align:right;">${h.igst_rate}% (${sym}${parseFloat(h.igst_amount).toFixed(2)})</td>
-                        <td style="padding:6px; text-align:right; font-weight:700;">${sym}${parseFloat(h.total_tax).toFixed(2)}</td>
+                    <tr style="font-size:10px;">
+                        <td style="padding:4px 6px; font-family:monospace; font-weight:700; border:1px solid #e2e8f0;">${h.hsn_code}</td>
+                        <td style="padding:4px 6px; text-align:right; border:1px solid #e2e8f0;">${sym}${parseFloat(h.taxable_value).toFixed(2)}</td>
+                        <td style="padding:4px 6px; text-align:right; border:1px solid #e2e8f0;">${h.cgst_rate}% (${sym}${parseFloat(h.cgst_amount).toFixed(2)})</td>
+                        <td style="padding:4px 6px; text-align:right; border:1px solid #e2e8f0;">${h.sgst_rate}% (${sym}${parseFloat(h.sgst_amount).toFixed(2)})</td>
+                        <td style="padding:4px 6px; text-align:right; border:1px solid #e2e8f0;">${h.igst_rate}% (${sym}${parseFloat(h.igst_amount).toFixed(2)})</td>
+                        <td style="padding:4px 6px; text-align:right; font-weight:700; border:1px solid #e2e8f0;">${sym}${parseFloat(h.total_tax).toFixed(2)}</td>
                     </tr>
                 `).join('');
 
                 const html = `
-                    <div style="font-family:'Plus Jakarta Sans', Arial, sans-serif; color:#0f172a; line-height:1.4;">
+                    <div style="font-family:'Plus Jakarta Sans', Arial, sans-serif; color:#0f172a; line-height:1.35; width:100%;">
                         <!-- Header Bar -->
-                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #0284c7; padding-bottom:12px; margin-bottom:14px;">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #0284c7; padding-bottom:10px; margin-bottom:12px;">
                             <div>
-                                <h1 style="font-size:22px; font-weight:900; color:#0369a1; letter-spacing:0.5px; margin:0;">${c.name}</h1>
-                                <p style="font-size:11px; color:#64748b; margin:2px 0;">${c.tagline}</p>
-                                <p style="font-size:11px; color:#475569; margin:2px 0;">${c.address}, ${c.city}, ${c.state} - ${c.postal_code}, ${c.country}</p>
-                                <p style="font-size:11px; color:#475569; margin:2px 0;">
+                                <h1 style="font-size:20px; font-weight:900; color:#0369a1; letter-spacing:0.3px; margin:0;">${c.name}</h1>
+                                <p style="font-size:10.5px; color:#64748b; margin:2px 0;">${c.tagline}</p>
+                                <p style="font-size:10.5px; color:#475569; margin:2px 0;">${c.address}, ${c.city}, ${c.state} - ${c.postal_code}, ${c.country}</p>
+                                <p style="font-size:10.5px; color:#475569; margin:2px 0;">
                                     <strong>GSTIN:</strong> <span style="font-family:monospace; font-weight:800; color:#0284c7;">${c.gstin}</span> | 
                                     <strong>PAN:</strong> <span style="font-family:monospace; font-weight:700;">${c.pan}</span> | 
-                                    <strong>State Code:</strong> ${c.state_code}
+                                    <strong>State Code:</strong> ${c.state_code} (${c.state})
                                 </p>
                             </div>
                             <div style="text-align:right;">
-                                <div style="display:inline-block; background:#0284c7; color:white; padding:4px 12px; font-weight:800; font-size:14px; border-radius:4px; margin-bottom:4px;">
+                                <div style="display:inline-block; background:#0284c7; color:white; padding:4px 12px; font-weight:900; font-size:13px; border-radius:4px; margin-bottom:3px;">
                                     TAX INVOICE
                                 </div>
-                                <div style="font-size:10px; color:#64748b; text-transform:uppercase; font-weight:700;">Original for Recipient</div>
-                                <div style="font-size:14px; font-weight:800; color:#0f172a; margin-top:2px;">#${inv.invoice_number}</div>
-                                <div style="font-size:11px; color:#475569;">Date: <strong>${inv.invoice_date}</strong></div>
-                                <div style="font-size:11px; color:#dc2626;">Due Date: <strong>${inv.due_date}</strong></div>
+                                <div style="font-size:9.5px; color:#64748b; text-transform:uppercase; font-weight:700;">Original for Recipient</div>
+                                <div style="font-size:13px; font-weight:900; color:#0f172a; margin-top:2px; font-family:monospace;">#${inv.invoice_number}</div>
+                                <div style="font-size:10.5px; color:#475569;">Date: <strong>${inv.invoice_date}</strong></div>
+                                <div style="font-size:10.5px; color:#dc2626;">Due Date: <strong>${inv.due_date}</strong></div>
                             </div>
                         </div>
 
                         <!-- 2-Column Buyer & Transaction Grid -->
-                        <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:14px; margin-bottom:14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:12px;">
+                        <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:12px; margin-bottom:12px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:10px;">
                             <div>
-                                <div style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Details of Receiver (Billed To):</div>
-                                <div style="font-size:14px; font-weight:800; color:#0f172a;">${inv.customer ? inv.customer.company_name : 'Customer Account'}</div>
-                                <div style="font-size:11px; color:#475569; margin-top:2px;">${inv.customer ? (inv.customer.billing_street || inv.customer.address_street || 'Registered Office Address') : ''}</div>
-                                <div style="font-size:11px; color:#475569;">${inv.customer ? (inv.customer.billing_city || inv.customer.address_city || '') : ''}, ${b.state}</div>
-                                <div style="font-size:11px; color:#0f172a; margin-top:4px;">
+                                <div style="font-size:9.5px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:3px;">Details of Receiver (Billed To):</div>
+                                <div style="font-size:13px; font-weight:800; color:#0f172a;">${inv.customer ? inv.customer.company_name : 'Customer Account'}</div>
+                                <div style="font-size:10.5px; color:#475569; margin-top:2px;">${inv.customer ? (inv.customer.billing_street || inv.customer.address_street || 'Registered Office Address') : ''}</div>
+                                <div style="font-size:10.5px; color:#475569;">${inv.customer ? (inv.customer.billing_city || inv.customer.address_city || '') : ''}, ${b.state}</div>
+                                <div style="font-size:10.5px; color:#0f172a; margin-top:3px;">
                                     <strong>GSTIN / UIN:</strong> <span style="font-family:monospace; font-weight:800; color:#0369a1;">${inv.customer && inv.customer.gst_number ? inv.customer.gst_number : 'Unregistered Recipient'}</span>
                                 </div>
-                                <div style="font-size:11px; color:#475569;">
+                                <div style="font-size:10.5px; color:#475569;">
                                     <strong>PAN:</strong> ${inv.customer && inv.customer.pan_number ? inv.customer.pan_number : 'N/A'} | 
-                                    <strong>State Code:</strong> ${b.state_code}
+                                    <strong>State Code:</strong> ${b.state_code} (${b.state})
                                 </div>
                             </div>
-                            <div style="border-left:1px solid #e2e8f0; padding-left:14px;">
-                                <div style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Supply & Logistics Meta:</div>
-                                <div style="font-size:11px; color:#475569; margin-bottom:3px;">
+                            <div style="border-left:1px solid #cbd5e1; padding-left:12px;">
+                                <div style="font-size:9.5px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:3px;">Supply & Logistics Meta:</div>
+                                <div style="font-size:10.5px; color:#475569; margin-bottom:2px;">
                                     <strong>Place of Supply:</strong> <span style="font-weight:700; color:#0f172a;">${b.state} (${b.state_code})</span>
                                 </div>
-                                <div style="font-size:11px; color:#475569; margin-bottom:3px;">
+                                <div style="font-size:10.5px; color:#475569; margin-bottom:2px;">
                                     <strong>Tax Type:</strong> <span style="font-weight:700; color:${isIntra ? '#16a34a' : '#9333ea'};">${isIntra ? 'Intra-State (CGST + SGST)' : 'Inter-State (IGST)'}</span>
                                 </div>
-                                <div style="font-size:11px; color:#475569; margin-bottom:3px;">
+                                <div style="font-size:10.5px; color:#475569; margin-bottom:2px;">
                                     <strong>Reverse Charge:</strong> ${inv.is_reverse_charge ? 'Yes' : 'No'}
                                 </div>
-                                <div style="font-size:11px; color:#475569;">
+                                <div style="font-size:10.5px; color:#475569;">
                                     <strong>Payment Status:</strong> <span style="font-weight:800; color:${inv.status === 'paid' ? '#16a34a' : '#d97706'}; text-transform:uppercase;">${inv.status}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Itemized Products Table -->
-                        <table style="width:100%; border-collapse:collapse; margin-bottom:14px; border:1px solid #cbd5e1;">
+                        <!-- Itemized Products Table with Multi-page repeating headers -->
+                        <table class="gst-print-table items-table" style="width:100%; border-collapse:collapse; margin-bottom:12px; border:1px solid #cbd5e1;">
                             <thead>
-                                <tr style="background:#0f172a; color:#ffffff; font-size:11px; text-transform:uppercase;">
-                                    <th style="padding:8px 6px; width:30px;">#</th>
-                                    <th style="padding:8px 6px; text-align:left;">Description of Goods / Services</th>
-                                    <th style="padding:8px 6px; width:70px; text-align:center;">HSN/SAC</th>
-                                    <th style="padding:8px 6px; width:65px; text-align:center;">Qty</th>
-                                    <th style="padding:8px 6px; width:75px; text-align:right;">Rate</th>
-                                    <th style="padding:8px 6px; width:45px; text-align:right;">Disc</th>
-                                    <th style="padding:8px 6px; width:85px; text-align:right;">Taxable (${sym})</th>
-                                    ${isIntra ? '<th style="padding:8px 6px; width:80px; text-align:right;">CGST</th><th style="padding:8px 6px; width:80px; text-align:right;">SGST</th>' : '<th style="padding:8px 6px; width:100px; text-align:right;" colspan="2">IGST</th>'}
-                                    <th style="padding:8px 6px; width:90px; text-align:right;">Total (${sym})</th>
+                                <tr style="background:#0f172a; color:#ffffff; font-size:9.5px; text-transform:uppercase;">
+                                    <th style="padding:6px 5px; width:25px; border:1px solid #334155; text-align:center;">#</th>
+                                    <th style="padding:6px 5px; text-align:left; border:1px solid #334155;">Description of Goods / Services</th>
+                                    <th style="padding:6px 5px; width:65px; text-align:center; border:1px solid #334155;">HSN/SAC</th>
+                                    <th style="padding:6px 5px; width:55px; text-align:center; border:1px solid #334155;">Qty</th>
+                                    <th style="padding:6px 5px; width:70px; text-align:right; border:1px solid #334155;">Rate</th>
+                                    <th style="padding:6px 5px; width:40px; text-align:right; border:1px solid #334155;">Disc</th>
+                                    <th style="padding:6px 5px; width:80px; text-align:right; border:1px solid #334155;">Taxable (${sym})</th>
+                                    ${isIntra ? '<th style="padding:6px 5px; width:75px; text-align:right; border:1px solid #334155;">CGST</th><th style="padding:6px 5px; width:75px; text-align:right; border:1px solid #334155;">SGST</th>' : '<th style="padding:6px 5px; width:95px; text-align:right; border:1px solid #334155;" colspan="2">IGST</th>'}
+                                    <th style="padding:6px 5px; width:85px; text-align:right; border:1px solid #334155;">Total (${sym})</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 ${itemRowsHtml}
                             </tbody>
+                            <tfoot>
+                                <tr style="background:#f1f5f9; font-weight:800; font-size:11px;">
+                                    <td colspan="3" style="padding:6px 5px; text-align:right; border:1px solid #cbd5e1;">Total (${itemsCount} Items):</td>
+                                    <td style="padding:6px 5px; text-align:center; border:1px solid #cbd5e1;">${totalQty}</td>
+                                    <td colspan="2" style="border:1px solid #cbd5e1;"></td>
+                                    <td style="padding:6px 5px; text-align:right; border:1px solid #cbd5e1;">${sym}${totalTaxableVal.toFixed(2)}</td>
+                                    ${isIntra ? `
+                                    <td style="padding:6px 5px; text-align:right; border:1px solid #cbd5e1;">${sym}${totalCgstVal.toFixed(2)}</td>
+                                    <td style="padding:6px 5px; text-align:right; border:1px solid #cbd5e1;">${sym}${totalSgstVal.toFixed(2)}</td>
+                                    ` : `
+                                    <td style="padding:6px 5px; text-align:right; border:1px solid #cbd5e1;" colspan="2">${sym}${totalIgstVal.toFixed(2)}</td>
+                                    `}
+                                    <td style="padding:6px 5px; text-align:right; border:1px solid #cbd5e1; color:#0f172a; font-weight:900;">${sym}${parseFloat(inv.total).toFixed(2)}</td>
+                                </tr>
+                            </tfoot>
                         </table>
 
-                        <!-- Tax Breakdown & Grand Summary -->
-                        <div style="display:grid; grid-template-columns: 1.3fr 1fr; gap:14px; margin-bottom:14px;">
-                            <div>
-                                <!-- HSN Summary -->
-                                <div style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:4px;">HSN / SAC Tax Breakdown Summary:</div>
-                                <table style="width:100%; border-collapse:collapse; font-size:11px; border:1px solid #e2e8f0; background:#f8fafc;">
-                                    <thead>
-                                        <tr style="background:#f1f5f9; border-bottom:1px solid #cbd5e1; font-size:10px;">
-                                            <th style="padding:4px; text-align:left;">HSN</th>
-                                            <th style="padding:4px; text-align:right;">Taxable</th>
-                                            <th style="padding:4px; text-align:right;">CGST</th>
-                                            <th style="padding:4px; text-align:right;">SGST</th>
-                                            <th style="padding:4px; text-align:right;">IGST</th>
-                                            <th style="padding:4px; text-align:right;">Total Tax</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${hsnSummaryRows}
-                                    </tbody>
-                                </table>
+                        <!-- Tax Breakdown & Grand Summary (Avoid page break split) -->
+                        <div class="avoid-page-break">
+                            <div style="display:grid; grid-template-columns: 1.3fr 1fr; gap:12px; margin-bottom:12px;">
+                                <div>
+                                    <!-- HSN Summary -->
+                                    <div style="font-size:9.5px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:3px;">HSN / SAC Tax Breakdown Summary:</div>
+                                    <table style="width:100%; border-collapse:collapse; font-size:10px; border:1px solid #cbd5e1; background:#f8fafc;">
+                                        <thead>
+                                            <tr style="background:#e2e8f0; border-bottom:1px solid #cbd5e1; font-size:9.5px;">
+                                                <th style="padding:4px 5px; text-align:left; border:1px solid #cbd5e1;">HSN</th>
+                                                <th style="padding:4px 5px; text-align:right; border:1px solid #cbd5e1;">Taxable</th>
+                                                <th style="padding:4px 5px; text-align:right; border:1px solid #cbd5e1;">CGST</th>
+                                                <th style="padding:4px 5px; text-align:right; border:1px solid #cbd5e1;">SGST</th>
+                                                <th style="padding:4px 5px; text-align:right; border:1px solid #cbd5e1;">IGST</th>
+                                                <th style="padding:4px 5px; text-align:right; border:1px solid #cbd5e1;">Total Tax</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${hsnSummaryRows}
+                                        </tbody>
+                                    </table>
 
-                                <!-- Amount in Words -->
-                                <div style="margin-top:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px; padding:8px;">
-                                    <div style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase;">Invoice Amount Chargeable (in Words):</div>
-                                    <div style="font-size:12px; font-weight:700; color:#0369a1; margin-top:2px;">${words}</div>
+                                    <!-- Amount in Words -->
+                                    <div style="margin-top:8px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px; padding:6px 8px;">
+                                        <div style="font-size:9.5px; font-weight:800; color:#64748b; text-transform:uppercase;">Invoice Amount Chargeable (in Words):</div>
+                                        <div style="font-size:11px; font-weight:800; color:#0369a1; margin-top:2px;">${words}</div>
+                                    </div>
+                                </div>
+
+                                <!-- Totals Box -->
+                                <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:10px 12px; font-size:11px;">
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:3px; color:#475569;">
+                                        <span>Taxable Value:</span>
+                                        <strong>${sym}${parseFloat(inv.subtotal - (inv.discount_total || 0)).toFixed(2)}</strong>
+                                    </div>
+                                    ${isIntra ? `
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:3px; color:#475569;">
+                                        <span>Total CGST:</span>
+                                        <strong>${sym}${parseFloat(inv.cgst_total || (inv.tax_total / 2)).toFixed(2)}</strong>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:3px; color:#475569;">
+                                        <span>Total SGST:</span>
+                                        <strong>${sym}${parseFloat(inv.sgst_total || (inv.tax_total / 2)).toFixed(2)}</strong>
+                                    </div>
+                                    ` : `
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:3px; color:#475569;">
+                                        <span>Total IGST:</span>
+                                        <strong>${sym}${parseFloat(inv.igst_total || inv.tax_total).toFixed(2)}</strong>
+                                    </div>
+                                    `}
+                                    <div style="display:flex; justify-content:space-between; border-top:2px solid #0f172a; padding-top:5px; margin-top:5px; font-size:14px; font-weight:900; color:#0f172a;">
+                                        <span>Invoice Total:</span>
+                                        <span>${sym}${parseFloat(inv.total).toFixed(2)}</span>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; margin-top:3px; font-size:11px; color:#16a34a;">
+                                        <span>Amount Paid:</span>
+                                        <strong>${sym}${parseFloat(inv.amount_paid || 0).toFixed(2)}</strong>
+                                    </div>
+                                    <div style="display:flex; justify-content:space-between; margin-top:2px; font-size:12px; font-weight:800; color:${inv.balance_due > 0 ? '#dc2626' : '#16a34a'};">
+                                        <span>Balance Due:</span>
+                                        <span>${sym}${parseFloat(inv.balance_due || 0).toFixed(2)}</span>
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- Totals Box -->
-                            <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:12px; font-size:12px;">
-                                <div style="display:flex; justify-content:space-between; margin-bottom:4px; color:#475569;">
-                                    <span>Taxable Value:</span>
-                                    <strong>${sym}${parseFloat(inv.subtotal - (inv.discount_total || 0)).toFixed(2)}</strong>
+                            <!-- Bank Transfer & UPI Electronic Settlement Box -->
+                            <div style="display:grid; grid-template-columns: 1.3fr 1fr; gap:12px; margin-bottom:10px; border:1px solid #cbd5e1; border-radius:6px; padding:8px 12px; background:#f8fafc;">
+                                <div style="font-size:10.5px; color:#334155;">
+                                    <div style="font-weight:800; color:#0f172a; text-transform:uppercase; font-size:9.5px; margin-bottom:3px;">Electronic Bank Settlement & UPI:</div>
+                                    <div><strong>Bank Name:</strong> ${c.bank_name}</div>
+                                    <div><strong>A/C No:</strong> <span style="font-family:monospace; font-weight:800;">${c.bank_account_no}</span> | <strong>IFSC:</strong> <span style="font-family:monospace; font-weight:800; color:#0284c7;">${c.bank_ifsc}</span></div>
+                                    <div><strong>Branch:</strong> ${c.bank_branch}</div>
+                                    <div style="margin-top:2px;"><strong>UPI VPA ID:</strong> <code style="color:#0369a1; font-weight:800;">${c.upi_id}</code></div>
                                 </div>
-                                ${isIntra ? `
-                                <div style="display:flex; justify-content:space-between; margin-bottom:4px; color:#475569;">
-                                    <span>Total CGST:</span>
-                                    <strong>${sym}${parseFloat(inv.cgst_total || (inv.tax_total / 2)).toFixed(2)}</strong>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; margin-bottom:4px; color:#475569;">
-                                    <span>Total SGST:</span>
-                                    <strong>${sym}${parseFloat(inv.sgst_total || (inv.tax_total / 2)).toFixed(2)}</strong>
-                                </div>
-                                ` : `
-                                <div style="display:flex; justify-content:space-between; margin-bottom:4px; color:#475569;">
-                                    <span>Total IGST:</span>
-                                    <strong>${sym}${parseFloat(inv.igst_total || inv.tax_total).toFixed(2)}</strong>
-                                </div>
-                                `}
-                                <div style="display:flex; justify-content:space-between; border-top:2px solid #0f172a; padding-top:6px; margin-top:6px; font-size:16px; font-weight:900; color:#0f172a;">
-                                    <span>Invoice Total:</span>
-                                    <span>${sym}${parseFloat(inv.total).toFixed(2)}</span>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:12px; color:#16a34a;">
-                                    <span>Amount Paid:</span>
-                                    <strong>${sym}${parseFloat(inv.amount_paid || 0).toFixed(2)}</strong>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; margin-top:2px; font-size:13px; font-weight:800; color:${inv.balance_due > 0 ? '#dc2626' : '#16a34a'};">
-                                    <span>Balance Due:</span>
-                                    <span>${sym}${parseFloat(inv.balance_due || 0).toFixed(2)}</span>
+                                <div style="text-align:right; display:flex; flex-direction:column; justify-content:space-between;">
+                                    <div style="font-size:9.5px; color:#64748b; text-transform:uppercase;">For ${c.name}</div>
+                                    <div style="font-size:10.5px; font-weight:800; color:#0f172a; border-top:1px solid #cbd5e1; padding-top:4px; margin-top:22px;">
+                                        Authorized Signatory
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Bank Transfer & UPI Electronic Settlement Box -->
-                        <div style="display:grid; grid-template-columns: 1.3fr 1fr; gap:14px; margin-bottom:14px; border:1px solid #cbd5e1; border-radius:6px; padding:10px; background:#f8fafc;">
-                            <div style="font-size:11px; color:#334155;">
-                                <div style="font-weight:800; color:#0f172a; text-transform:uppercase; font-size:10px; margin-bottom:4px;">Electronic Bank Settlement & UPI:</div>
-                                <div><strong>Bank Name:</strong> ${c.bank_name}</div>
-                                <div><strong>A/C No:</strong> <span style="font-family:monospace; font-weight:800;">${c.bank_account_no}</span> | <strong>IFSC:</strong> <span style="font-family:monospace; font-weight:800; color:#0284c7;">${c.bank_ifsc}</span></div>
-                                <div><strong>Branch:</strong> ${c.bank_branch}</div>
-                                <div style="margin-top:3px;"><strong>UPI VPA ID:</strong> <code style="color:#0369a1; font-weight:800;">${c.upi_id}</code></div>
+                            <!-- Terms of Sale -->
+                            <div style="font-size:9.5px; color:#64748b; border-top:1px dashed #cbd5e1; padding-top:5px;">
+                                <strong>Terms & Conditions:</strong> 1. Payment due within specified credit terms. 2. Interest @ 18% p.a. chargeable on overdue settlements. 3. Subject to ${c.city} Jurisdiction.
                             </div>
-                            <div style="text-align:right; display:flex; flex-direction:column; justify-content:space-between;">
-                                <div style="font-size:10px; color:#64748b; text-transform:uppercase;">For ${c.name}</div>
-                                <div style="font-size:11px; font-weight:800; color:#0f172a; border-top:1px solid #cbd5e1; padding-top:4px; margin-top:24px;">
-                                    Authorized Signatory
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Terms of Sale -->
-                        <div style="font-size:10px; color:#64748b; border-top:1px dashed #cbd5e1; padding-top:6px;">
-                            <strong>Terms & Conditions:</strong> 1. Payment due within specified credit terms. 2. Interest @ 18% p.a. chargeable on overdue settlements. 3. Subject to ${c.city} Jurisdiction.
                         </div>
                     </div>
                 `;

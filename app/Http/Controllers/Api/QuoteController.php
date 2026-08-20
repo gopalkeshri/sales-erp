@@ -147,15 +147,68 @@ class QuoteController extends Controller
 
     public function pdfData(int $id): JsonResponse
     {
-        $quote = Quote::with(['customer', 'contact', 'assignedUser', 'items.product'])->findOrFail($id);
+        $quote = Quote::with(['customer.contacts', 'contact', 'opportunity', 'assignedUser', 'items.product'])->findOrFail($id);
+        $settings = \App\Models\Setting::getAllKeyValue();
+
+        $companyStateCode = $settings['company_state_code'] ?? '27';
+        $companyState = $settings['company_state'] ?? 'Maharashtra';
+        $buyerStateCode = $quote->state_code ?? ($quote->customer->state_code ?? $companyStateCode);
+        $buyerState = $quote->place_of_supply ?: (\App\Services\GstService::getStateByCode($buyerStateCode) ?? ($quote->customer->billing_state ?? ($quote->customer->address_state ?? 'Maharashtra')));
+
+        $amountInWords = \App\Services\GstService::numberToIndianWords((float) $quote->total);
+
+        // HSN Summary Grouping
+        $hsnSummary = [];
+        foreach ($quote->items as $item) {
+            $hsn = $item->hsn_code ?: ($item->product->hsn_code ?? 'N/A');
+            if (!isset($hsnSummary[$hsn])) {
+                $hsnSummary[$hsn] = [
+                    'hsn_code' => $hsn,
+                    'taxable_value' => 0,
+                    'cgst_rate' => $item->cgst_rate,
+                    'cgst_amount' => 0,
+                    'sgst_rate' => $item->sgst_rate,
+                    'sgst_amount' => 0,
+                    'igst_rate' => $item->igst_rate,
+                    'igst_amount' => 0,
+                    'total_tax' => 0,
+                ];
+            }
+            $hsnSummary[$hsn]['taxable_value'] += (float)$item->taxable_value;
+            $hsnSummary[$hsn]['cgst_amount'] += (float)$item->cgst_amount;
+            $hsnSummary[$hsn]['sgst_amount'] += (float)$item->sgst_amount;
+            $hsnSummary[$hsn]['igst_amount'] += (float)$item->igst_amount;
+            $hsnSummary[$hsn]['total_tax'] += (float)($item->cgst_amount + $item->sgst_amount + $item->igst_amount);
+        }
+
         return response()->json([
             'quote' => $quote,
+            'amount_in_words' => $amountInWords,
+            'hsn_summary' => array_values($hsnSummary),
             'company' => [
-                'name' => config('app.name', 'Sales ERP Corp'),
-                'address' => '100 Enterprise Way, Silicon Valley, CA 94025',
-                'phone' => '+1 (555) 019-2834',
-                'email' => 'sales@saleserp.com',
-                'gst_vat' => 'US-ERP-9920194',
+                'name' => $settings['company_name'] ?? 'Apex Enterprise Solutions Pvt. Ltd.',
+                'tagline' => $settings['company_tagline'] ?? 'Enterprise B2B Revenue & GST Fulfillment Platform',
+                'address' => $settings['company_address'] ?? '100 Enterprise Tower, BKC Complex',
+                'city' => $settings['company_city'] ?? 'Mumbai',
+                'state' => $companyState,
+                'state_code' => $companyStateCode,
+                'postal_code' => $settings['company_postal_code'] ?? '400051',
+                'country' => $settings['company_country'] ?? 'India',
+                'phone' => $settings['company_phone'] ?? '+91 (22) 6789-0123',
+                'email' => $settings['company_email'] ?? 'billing@saleserp.in',
+                'gstin' => $settings['tax_id'] ?? '27AAACA1234F1Z5',
+                'pan' => $settings['company_pan'] ?? 'AAACA1234F',
+                'bank_name' => $settings['bank_name'] ?? 'HDFC Bank Ltd.',
+                'bank_account_no' => $settings['bank_account_no'] ?? '50200012345678',
+                'bank_ifsc' => $settings['bank_ifsc'] ?? 'HDFC0000123',
+                'bank_branch' => $settings['bank_branch'] ?? 'BKC Bandra, Mumbai',
+                'upi_id' => $settings['upi_id'] ?? 'apexsolutions@okhdfcbank',
+                'currency_symbol' => $settings['currency_symbol'] ?? '₹',
+            ],
+            'buyer' => [
+                'state' => $buyerState,
+                'state_code' => $buyerStateCode,
+                'is_intra_state' => ($quote->gst_type === 'intra_state' || $buyerStateCode === $companyStateCode),
             ],
         ]);
     }
