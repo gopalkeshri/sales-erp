@@ -66,18 +66,30 @@ class ReportService
 
     public function getSalesSummary(?string $startDate = null, ?string $endDate = null): array
     {
-        $startDate = $startDate ?: now()->startOfYear()->toDateString();
-        $endDate = $endDate ?: now()->toDateString();
+        $startDate = $startDate ? substr($startDate, 0, 10) : now()->startOfYear()->toDateString();
+        $endDate = $endDate ? substr($endDate, 0, 10) : now()->toDateString();
 
         $closedWon = Opportunity::where('stage', 'closed_won')
-            ->whereBetween('actual_close_date', [$startDate, $endDate])
+            ->where(function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('actual_close_date', [$startDate, $endDate])
+                    ->orWhere(function ($sub) use ($startDate, $endDate) {
+                        $sub->whereNull('actual_close_date')
+                            ->whereDate('updated_at', '>=', $startDate)
+                            ->whereDate('updated_at', '<=', $endDate);
+                    });
+            })
             ->sum('amount');
 
-        $invoiced = Invoice::whereBetween('invoice_date', [$startDate, $endDate])->sum('total');
-        $paid = Invoice::where('status', 'paid')->whereBetween('invoice_date', [$startDate, $endDate])->sum('total');
+        $invoiced = Invoice::whereDate('invoice_date', '>=', $startDate)->whereDate('invoice_date', '<=', $endDate)->sum('total');
+        $paid = Invoice::where('status', 'paid')->whereDate('invoice_date', '>=', $startDate)->whereDate('invoice_date', '<=', $endDate)->sum('total');
         $outstanding = Invoice::whereIn('status', ['draft', 'sent', 'partial', 'overdue'])
-            ->whereBetween('invoice_date', [$startDate, $endDate])
+            ->whereDate('invoice_date', '>=', $startDate)
+            ->whereDate('invoice_date', '<=', $endDate)
             ->sum('balance_due');
+
+        $totalInvoicesCount = Invoice::whereDate('invoice_date', '>=', $startDate)->whereDate('invoice_date', '<=', $endDate)->count();
+        $paidInvoicesCount = Invoice::where('status', 'paid')->whereDate('invoice_date', '>=', $startDate)->whereDate('invoice_date', '<=', $endDate)->count();
+        $collectionRate = $invoiced > 0 ? round(($paid / $invoiced) * 100, 1) : 0;
 
         return [
             'period' => ['start' => $startDate, 'end' => $endDate],
@@ -85,6 +97,40 @@ class ReportService
             'total_invoiced' => (float) $invoiced,
             'total_collected' => (float) $paid,
             'outstanding_balance' => (float) $outstanding,
+            'total_invoices_count' => $totalInvoicesCount,
+            'paid_invoices_count' => $paidInvoicesCount,
+            'collection_rate' => $collectionRate,
+        ];
+    }
+
+    public function getTaxSummary(?string $startDate = null, ?string $endDate = null): array
+    {
+        $startDate = $startDate ? substr($startDate, 0, 10) : now()->startOfYear()->toDateString();
+        $endDate = $endDate ? substr($endDate, 0, 10) : now()->toDateString();
+
+        $query = Invoice::whereDate('invoice_date', '>=', $startDate)->whereDate('invoice_date', '<=', $endDate);
+
+        $totalTaxable = (float) (clone $query)->sum('subtotal');
+        $totalCgst = (float) (clone $query)->sum('cgst_total');
+        $totalSgst = (float) (clone $query)->sum('sgst_total');
+        $totalIgst = (float) (clone $query)->sum('igst_total');
+        $totalTax = (float) (clone $query)->sum('tax_total');
+        $totalGross = (float) (clone $query)->sum('total');
+        $totalPaid = (float) (clone $query)->where('status', 'paid')->sum('total');
+        $totalPendingTax = (float) (clone $query)->where('status', '!=', 'paid')->sum('tax_total');
+        $invoicesCount = (clone $query)->count();
+
+        return [
+            'period' => ['start' => $startDate, 'end' => $endDate],
+            'invoices_count' => $invoicesCount,
+            'taxable_value' => $totalTaxable,
+            'cgst_total' => $totalCgst,
+            'sgst_total' => $totalSgst,
+            'igst_total' => $totalIgst,
+            'tax_total' => $totalTax,
+            'gross_total' => $totalGross,
+            'total_paid' => $totalPaid,
+            'pending_tax' => $totalPendingTax,
         ];
     }
 
@@ -101,13 +147,17 @@ class ReportService
             ->limit($limit)
             ->get()
             ->map(function ($rep) {
+                $dealsWon = (int) $rep->closed_won_count;
+                $totalSales = (float) ($rep->total_sales ?: 0);
+                $avgDealSize = $dealsWon > 0 ? round($totalSales / $dealsWon, 2) : 0;
                 return [
                     'id' => $rep->id,
                     'name' => $rep->name,
                     'email' => $rep->email,
                     'role' => $rep->role,
-                    'deals_won' => (int) $rep->closed_won_count,
-                    'total_sales' => (float) ($rep->total_sales ?: 0),
+                    'deals_won' => $dealsWon,
+                    'total_sales' => $totalSales,
+                    'avg_deal_size' => $avgDealSize,
                 ];
             })
             ->toArray();
@@ -181,9 +231,17 @@ class ReportService
 
             if ($revenue <= 0) {
                 $revenue = (float) Opportunity::where('stage', 'closed_won')
-                    ->whereBetween('actual_close_date', [$start, $end])
+                    ->where(function ($q) use ($start, $end) {
+                        $q->whereBetween('actual_close_date', [$start, $end])
+                            ->orWhere(function ($sub) use ($start, $end) {
+                                $sub->whereNull('actual_close_date')
+                                    ->whereBetween('updated_at', [$start . ' 00:00:00', $end . ' 23:59:59']);
+                            });
+                    })
                     ->sum('amount');
             }
+
+            $invoiced = (float) Invoice::whereBetween('invoice_date', [$start, $end])->sum('total');
 
             $pipeline = (float) Opportunity::whereBetween('created_at', [$start . ' 00:00:00', $end . ' 23:59:59'])
                 ->sum('amount');
@@ -192,6 +250,7 @@ class ReportService
                 'period' => $yearMonth,
                 'label' => $label,
                 'revenue' => $revenue,
+                'invoiced' => $invoiced,
                 'pipeline_added' => $pipeline,
             ];
         }
