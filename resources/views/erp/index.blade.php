@@ -849,6 +849,38 @@
             animation: fadeIn 0.25s ease forwards;
         }
 
+        /* Reports Styles */
+        .report-tab-pill {
+            transition: all 0.2s ease;
+        }
+
+        .report-tab-pill.active {
+            color: #ffffff !important;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(6, 182, 212, 0.2) 100%) !important;
+            border-color: rgba(99, 102, 241, 0.5) !important;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+        }
+
+        .date-preset-btn {
+            border-radius: 6px !important;
+            transition: all 0.15s ease;
+        }
+
+        .date-preset-btn.active {
+            background: var(--primary) !important;
+            color: white !important;
+            border-color: var(--primary) !important;
+        }
+
+        .report-subpane {
+            display: none;
+        }
+
+        .report-subpane.active {
+            display: block;
+            animation: fadeIn 0.2s ease forwards;
+        }
+
         /* Modern Toggle Switch */
         .toggle-switch {
             position: relative;
@@ -1128,7 +1160,7 @@
                                 <i data-lucide="dollar-sign"></i>
                             </div>
                         </div>
-                        <div class="kpi-value">${{ number_format($metrics['total_revenue'], 2) }}</div>
+                        <div class="kpi-value">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($metrics['total_revenue'], 2) }}</div>
                         <div class="kpi-subtext" style="color: #34d399;">↑ 18.4% vs prior period</div>
                     </div>
 
@@ -1139,7 +1171,7 @@
                                 <i data-lucide="activity"></i>
                             </div>
                         </div>
-                        <div class="kpi-value">${{ number_format($metrics['total_pipeline'], 2) }}</div>
+                        <div class="kpi-value">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($metrics['total_pipeline'], 2) }}</div>
                         <div class="kpi-subtext">{{ $metrics['active_deals'] }} active qualified deals</div>
                     </div>
 
@@ -2146,59 +2178,252 @@
                             </tbody>
                         </table>
                     </div>
+                </div>
             </div>
 
             <!-- TAB 10: REPORTS & ANALYTICS -->
             <div id="tab-reports" class="tab-pane">
-                <div class="kpi-grid">
-                    <div class="kpi-card">
-                        <div class="kpi-label">Annual Revenue Run Rate</div>
-                        <div class="kpi-value">${{ number_format($metrics['total_revenue'] * 12, 2) }}</div>
-                        <div class="kpi-subtext">Projected ARR</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-label">Weighted Deal Pipeline</div>
-                        <div class="kpi-value">${{ number_format($metrics['weighted_pipeline'], 2) }}</div>
-                        <div class="kpi-subtext">Probability adjusted</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-label">Active Customer Accounts</div>
-                        <div class="kpi-value">{{ $metrics['total_customers'] }}</div>
-                        <div class="kpi-subtext">Retained accounts</div>
+                <!-- Executive Analytics Control Bar -->
+                <div class="card" style="margin-bottom: 20px; background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%); border: 1px solid rgba(99, 102, 241, 0.25);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div style="display: flex; align-items: center; gap: 14px;">
+                            <div style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%); border: 1px solid rgba(99, 102, 241, 0.4); display: flex; align-items: center; justify-content: center; color: #818cf8;">
+                                <i data-lucide="bar-chart-3" style="width: 24px; height: 24px;"></i>
+                            </div>
+                            <div>
+                                <h2 style="font-size: 18px; font-weight: 800; color: #ffffff; margin-bottom: 2px;">Reporting & Business Intelligence</h2>
+                                <p style="font-size: 12px; color: #94a3b8;">Real-time revenue metrics, sales funnel conversions, regional territory breakdown, and GST tax ledger summaries.</p>
+                            </div>
+                        </div>
+
+                        <!-- Date Filters & Actions -->
+                        <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+                            <div style="display: flex; gap: 4px; background: rgba(0, 0, 0, 0.35); padding: 4px; border-radius: 8px; border: 1px solid var(--border-color);">
+                                <button type="button" class="btn btn-sm btn-secondary date-preset-btn active" onclick="setReportDatePreset('ytd', this)" style="font-size: 11px; padding: 4px 8px;">This Year</button>
+                                <button type="button" class="btn btn-sm btn-secondary date-preset-btn" onclick="setReportDatePreset('month', this)" style="font-size: 11px; padding: 4px 8px;">This Month</button>
+                                <button type="button" class="btn btn-sm btn-secondary date-preset-btn" onclick="setReportDatePreset('quarter', this)" style="font-size: 11px; padding: 4px 8px;">This Quarter</button>
+                                <button type="button" class="btn btn-sm btn-secondary date-preset-btn" onclick="setReportDatePreset('all', this)" style="font-size: 11px; padding: 4px 8px;">All Time</button>
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <input type="date" id="rep_start_date" class="form-control" style="font-size: 11px; padding: 4px 8px; width: 130px;" value="{{ now()->startOfYear()->toDateString() }}">
+                                <span style="color: #64748b; font-size: 12px;">to</span>
+                                <input type="date" id="rep_end_date" class="form-control" style="font-size: 11px; padding: 4px 8px; width: 130px;" value="{{ now()->toDateString() }}">
+                                <button type="button" class="btn btn-sm btn-primary" onclick="applyReportDateFilter()" title="Filter Data" style="padding: 6px 12px;">
+                                    <i data-lucide="filter" style="width: 13px; height: 13px;"></i> Filter
+                                </button>
+                            </div>
+
+                            <div style="display: flex; gap: 6px;">
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="exportReportDataCsv()" title="Export CSV Report" style="font-size: 12px;">
+                                    <i data-lucide="download" style="width: 13px; height: 13px; color: var(--accent-cyan);"></i> Export CSV
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="printReportSummary()" title="Print Executive Summary" style="font-size: 12px;">
+                                    <i data-lucide="printer" style="width: 13px; height: 13px;"></i> Print
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                <!-- 6-Column KPI Metrics Grid -->
+                <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 20px;">
+                    <div class="kpi-card">
+                        <div class="kpi-top">
+                            <span class="kpi-label">Annual Revenue Run Rate</span>
+                            <div class="kpi-icon-box" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
+                                <i data-lucide="trending-up"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value" id="kpi_arr">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($metrics['total_revenue'] * 12, 2) }}</div>
+                        <div class="kpi-subtext" style="color: #34d399;">Projected 12M ARR</div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-top">
+                            <span class="kpi-label">Total Invoiced (Period)</span>
+                            <div class="kpi-icon-box" style="background: rgba(6, 182, 212, 0.15); color: #22d3ee;">
+                                <i data-lucide="receipt"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value" id="kpi_invoiced">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($salesSummary['total_invoiced'] ?? 0, 2) }}</div>
+                        <div class="kpi-subtext" id="kpi_invoices_count">{{ $salesSummary['total_invoices_count'] ?? 0 }} invoices generated</div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-top">
+                            <span class="kpi-label">Realized Collections</span>
+                            <div class="kpi-icon-box" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+                                <i data-lucide="check-circle-2"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value" id="kpi_collected" style="color: #34d399;">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($salesSummary['total_collected'] ?? 0, 2) }}</div>
+                        <div class="kpi-subtext" id="kpi_collection_rate" style="color: #34d399;">{{ $salesSummary['collection_rate'] ?? 0 }}% collection efficiency</div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-top">
+                            <span class="kpi-label">Outstanding Balances</span>
+                            <div class="kpi-icon-box" style="background: rgba(244, 63, 94, 0.15); color: #fb7185;">
+                                <i data-lucide="clock"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value" id="kpi_outstanding" style="color: {{ ($salesSummary['outstanding_balance'] ?? 0) > 0 ? '#fb7185' : '#34d399' }};">
+                            {{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($salesSummary['outstanding_balance'] ?? 0, 2) }}
+                        </div>
+                        <div class="kpi-subtext">{{ $metrics['overdue_invoices'] ?? 0 }} overdue settlements</div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-top">
+                            <span class="kpi-label">Weighted Deal Pipeline</span>
+                            <div class="kpi-icon-box" style="background: rgba(99, 102, 241, 0.15); color: #818cf8;">
+                                <i data-lucide="git-branch"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($metrics['weighted_pipeline'] ?? 0, 2) }}</div>
+                        <div class="kpi-subtext">{{ $metrics['active_deals'] ?? 0 }} active stage deals</div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-top">
+                            <span class="kpi-label">Deal Win Rate</span>
+                            <div class="kpi-icon-box" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">
+                                <i data-lucide="trophy"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value" style="color: #fbbf24;">{{ $metrics['win_rate'] ?? 0 }}%</div>
+                        <div class="kpi-subtext">{{ $metrics['closed_won_deals'] ?? 0 }} deals closed won</div>
+                    </div>
+                </div>
+
+                <!-- Visual Analytics Charts Grid -->
+                <div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="card">
+                        <div class="card-header" style="flex-wrap: wrap; gap: 10px;">
+                            <div class="card-title">
+                                <i data-lucide="trending-up" style="color: #10b981;"></i>
+                                Revenue & Invoicing Trends
+                            </div>
+                            <div style="display: flex; gap: 6px;">
+                                <button type="button" class="btn btn-sm btn-secondary active" id="btnTrend6m" onclick="updateReportRevenueTrends(6, this)" style="font-size: 11px; padding: 3px 8px;">6 Months</button>
+                                <button type="button" class="btn btn-sm btn-secondary" id="btnTrend12m" onclick="updateReportRevenueTrends(12, this)" style="font-size: 11px; padding: 3px 8px;">12 Months</button>
+                            </div>
+                        </div>
+                        <div style="height: 280px; position: relative;">
+                            <canvas id="reportRevenueTrendsChart"></canvas>
+                        </div>
+                    </div>
+
                     <div class="card">
                         <div class="card-header">
                             <div class="card-title">
-                                <i data-lucide="globe" style="color: var(--accent-cyan);"></i>
-                                Territory Sales Performance
+                                <i data-lucide="pie-chart" style="color: var(--accent-cyan);"></i>
+                                Pipeline Stage Volume
                             </div>
                         </div>
+                        <div style="height: 280px; position: relative;">
+                            <canvas id="reportPipelineDistChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i data-lucide="globe-2" style="color: var(--primary);"></i>
+                                Regional Territory Revenue Share
+                            </div>
+                        </div>
+                        <div style="height: 260px; position: relative;">
+                            <canvas id="reportTerritoryShareChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i data-lucide="boxes" style="color: #fbbf24;"></i>
+                                Top Products by Revenue
+                            </div>
+                        </div>
+                        <div style="height: 260px; position: relative;">
+                            <canvas id="reportProductShareChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Structured Deep-Dive Data Tables with Sub-Tabs -->
+                <div class="card">
+                    <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <i data-lucide="table" style="color: var(--accent-cyan); width: 20px; height: 20px;"></i>
+                            <span style="font-weight: 700; color: #ffffff; font-size: 15px;">Detailed Performance Breakdowns</span>
+                        </div>
+
+                        <!-- Sub Tab Pills -->
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-sm btn-secondary report-tab-pill active" id="btn-rep-tab-salesreps" onclick="switchReportSubTab('salesreps')">
+                                <i data-lucide="award" style="width: 13px; height: 13px; color: #fbbf24;"></i> Sales Reps
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary report-tab-pill" id="btn-rep-tab-territory" onclick="switchReportSubTab('territory')">
+                                <i data-lucide="globe" style="width: 13px; height: 13px; color: #22d3ee;"></i> Territories
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary report-tab-pill" id="btn-rep-tab-products" onclick="switchReportSubTab('products')">
+                                <i data-lucide="package" style="width: 13px; height: 13px; color: #a78bfa;"></i> Products
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary report-tab-pill" id="btn-rep-tab-tax" onclick="switchReportSubTab('tax')">
+                                <i data-lucide="file-spreadsheet" style="width: 13px; height: 13px; color: #34d399;"></i> GST Tax Ledger
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- SUB-PANE 1: Sales Reps -->
+                    <div id="rep-subpane-salesreps" class="report-subpane active">
                         <div class="table-responsive">
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>Territory</th>
-                                        <th>Region</th>
-                                        <th>Customers</th>
-                                        <th>Total Sales</th>
+                                        <th>Sales Representative</th>
+                                        <th>Role / Title</th>
+                                        <th>Deals Won</th>
+                                        <th>Total Sales Revenue</th>
+                                        <th>Average Deal Size</th>
+                                        <th>Performance Tier</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse($territoryPerformance as $t)
+                                    @forelse($topPerformers as $idx => $rep)
                                     <tr>
-                                        <td style="font-weight: 700; color: white;">{{ $t['name'] }}</td>
-                                        <td>{{ $t['region'] }}</td>
-                                        <td>{{ $t['customers_count'] }}</td>
-                                        <td style="font-weight: 700; color: #34d399;">${{ number_format($t['total_sales'], 2) }}</td>
+                                        <td>
+                                            <div style="display: flex; align-items: center; gap: 10px;">
+                                                <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(99, 102, 241, 0.4); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; color: #818cf8;">
+                                                    #{{ $idx + 1 }}
+                                                </div>
+                                                <div>
+                                                    <div style="font-weight: 700; color: #ffffff;">{{ $rep['name'] }}</div>
+                                                    <div style="font-size: 11px; color: #94a3b8;">{{ $rep['email'] }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td><span class="badge badge-purple">{{ ucfirst(str_replace('_', ' ', $rep['role'])) }}</span></td>
+                                        <td style="font-weight: 700; color: #38bdf8;">{{ $rep['deals_won'] }} deals</td>
+                                        <td style="font-weight: 800; color: #34d399;">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($rep['total_sales'], 2) }}</td>
+                                        <td style="font-weight: 600; color: #e2e8f0;">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($rep['avg_deal_size'] ?? 0, 2) }}</td>
+                                        <td>
+                                            @if($rep['total_sales'] > 500000)
+                                                <span class="badge badge-success">Top Producer 🏆</span>
+                                            @elseif($rep['total_sales'] > 100000)
+                                                <span class="badge badge-info">High Performer ⭐</span>
+                                            @else
+                                                <span class="badge badge-neutral">Active Rep</span>
+                                            @endif
+                                        </td>
                                     </tr>
                                     @empty
                                     <tr>
-                                        <td colspan="4" style="text-align: center; padding: 24px; color: #64748b;">
-                                            No territory sales data yet.
-                                        </td>
+                                        <td colspan="6" style="text-align: center; padding: 24px; color: #64748b;">No sales representative closed deals data recorded yet.</td>
                                     </tr>
                                     @endforelse
                                 </tbody>
@@ -2206,36 +2431,155 @@
                         </div>
                     </div>
 
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">
-                                <i data-lucide="package" style="color: var(--primary);"></i>
-                                Product Performance & Volume
-                            </div>
-                        </div>
+                    <!-- SUB-PANE 2: Territory Performance -->
+                    <div id="rep-subpane-territory" class="report-subpane" style="display: none;">
                         <div class="table-responsive">
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>Product</th>
+                                        <th>Territory Name</th>
+                                        <th>Region</th>
+                                        <th>Active Accounts</th>
+                                        <th>Total Won Sales</th>
+                                        <th>Active Pipeline</th>
+                                        <th>Performance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($territoryPerformance as $t)
+                                    <tr>
+                                        <td style="font-weight: 700; color: #ffffff;">{{ $t['name'] }}</td>
+                                        <td><span class="badge badge-info">{{ $t['region'] }}</span></td>
+                                        <td style="font-weight: 600;">{{ $t['customers_count'] }} accounts</td>
+                                        <td style="font-weight: 800; color: #34d399;">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($t['total_sales'], 2) }}</td>
+                                        <td style="font-weight: 700; color: #38bdf8;">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($t['active_pipeline'], 2) }}</td>
+                                        <td>
+                                            @if($t['total_sales'] > 0)
+                                                <span class="badge badge-success">Revenue Generating ✓</span>
+                                            @else
+                                                <span class="badge badge-neutral">Nurturing Pipeline</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="6" style="text-align: center; padding: 24px; color: #64748b;">No territory performance records available.</td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- SUB-PANE 3: Product Performance -->
+                    <div id="rep-subpane-products" class="report-subpane" style="display: none;">
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Product Name & SKU</th>
                                         <th>Category</th>
+                                        <th>Unit Price</th>
                                         <th>Units Sold</th>
-                                        <th>Revenue</th>
+                                        <th>Revenue Generated</th>
+                                        <th>Current Stock</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @forelse($productPerformance as $prod)
                                     <tr>
-                                        <td style="font-weight: 700; color: white;">{{ $prod['name'] }}</td>
-                                        <td>{{ $prod['category'] }}</td>
-                                        <td>{{ $prod['units_sold'] }} units</td>
-                                        <td style="font-weight: 700; color: #34d399;">${{ number_format($prod['revenue_generated'], 2) }}</td>
+                                        <td>
+                                            <div style="font-weight: 700; color: #ffffff;">{{ $prod['name'] }}</div>
+                                            <div style="font-size: 11px; font-family: monospace; color: var(--accent-cyan);">{{ $prod['sku'] }}</div>
+                                        </td>
+                                        <td><span class="badge badge-purple">{{ ucfirst($prod['category'] ?? 'General') }}</span></td>
+                                        <td style="font-weight: 600;">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($prod['unit_price'], 2) }}</td>
+                                        <td style="font-weight: 700; color: #38bdf8;">{{ $prod['units_sold'] }} units</td>
+                                        <td style="font-weight: 800; color: #34d399;">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($prod['revenue_generated'], 2) }}</td>
+                                        <td>
+                                            @if($prod['total_stock'] <= ($settings['low_stock_threshold'] ?? 20))
+                                                <span class="badge badge-warning">{{ $prod['total_stock'] }} in stock (Low)</span>
+                                            @else
+                                                <span class="badge badge-success">{{ $prod['total_stock'] }} in stock</span>
+                                            @endif
+                                        </td>
                                     </tr>
                                     @empty
                                     <tr>
-                                        <td colspan="4" style="text-align: center; padding: 24px; color: #64748b;">
-                                            No product sales data yet.
+                                        <td colspan="6" style="text-align: center; padding: 24px; color: #64748b;">No product catalog sales metrics recorded yet.</td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- SUB-PANE 4: GST Tax Ledger -->
+                    <div id="rep-subpane-tax" class="report-subpane" style="display: none;">
+                        <div style="padding: 16px 20px;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                                <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; text-align: center;">
+                                    <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Total Taxable Value</div>
+                                    <div style="font-size: 16px; font-weight: 800; color: #ffffff; margin-top: 2px;" id="tax_val_taxable">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($taxSummary['taxable_value'] ?? 0, 2) }}</div>
+                                </div>
+                                <div style="background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.25); border-radius: 8px; padding: 12px; text-align: center;">
+                                    <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">CGST Output</div>
+                                    <div style="font-size: 16px; font-weight: 800; color: #818cf8; margin-top: 2px;" id="tax_val_cgst">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($taxSummary['cgst_total'] ?? 0, 2) }}</div>
+                                </div>
+                                <div style="background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.25); border-radius: 8px; padding: 12px; text-align: center;">
+                                    <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">SGST Output</div>
+                                    <div style="font-size: 16px; font-weight: 800; color: #22d3ee; margin-top: 2px;" id="tax_val_sgst">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($taxSummary['sgst_total'] ?? 0, 2) }}</div>
+                                </div>
+                                <div style="background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.25); border-radius: 8px; padding: 12px; text-align: center;">
+                                    <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">IGST Output</div>
+                                    <div style="font-size: 16px; font-weight: 800; color: #c084fc; margin-top: 2px;" id="tax_val_igst">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($taxSummary['igst_total'] ?? 0, 2) }}</div>
+                                </div>
+                                <div style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); border-radius: 8px; padding: 12px; text-align: center;">
+                                    <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Total Tax Collected</div>
+                                    <div style="font-size: 16px; font-weight: 800; color: #34d399; margin-top: 2px;" id="tax_val_total">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($taxSummary['tax_total'] ?? 0, 2) }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Invoice #</th>
+                                        <th>Date</th>
+                                        <th>Customer</th>
+                                        <th>GSTIN</th>
+                                        <th>Taxable Value</th>
+                                        <th>Tax Type</th>
+                                        <th>Total Tax</th>
+                                        <th>Invoice Gross</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($invoices as $inv)
+                                    <tr>
+                                        <td style="font-weight: 700; font-family: monospace; color: white;">{{ $inv->invoice_number }}</td>
+                                        <td>{{ $inv->invoice_date }}</td>
+                                        <td>{{ $inv->customer->company_name ?? 'Client' }}</td>
+                                        <td><code style="color: var(--accent-cyan); font-size: 11px;">{{ $inv->customer->gst_number ?? 'Unregistered' }}</code></td>
+                                        <td style="font-weight: 600;">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($inv->subtotal, 2) }}</td>
+                                        <td>
+                                            <span class="badge {{ $inv->gst_type === 'intra_state' ? 'badge-info' : 'badge-purple' }}">
+                                                {{ $inv->gst_type === 'intra_state' ? 'CGST+SGST' : 'IGST' }}
+                                            </span>
                                         </td>
+                                        <td style="font-weight: 700; color: #38bdf8;">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($inv->tax_total, 2) }}</td>
+                                        <td style="font-weight: 800; color: white;">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($inv->total, 2) }}</td>
+                                        <td>
+                                            <span class="badge {{ $inv->status === 'paid' ? 'badge-success' : ($inv->status === 'partial' ? 'badge-warning' : 'badge-danger') }}">
+                                                {{ strtoupper($inv->status) }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="9" style="text-align: center; padding: 24px; color: #64748b;">No GST tax invoice transactions recorded.</td>
                                     </tr>
                                     @endforelse
                                 </tbody>
@@ -2256,7 +2600,7 @@
                             </div>
                             <div>
                                 <h2 style="font-size: 18px; font-weight: 800; color: #ffffff; margin-bottom: 2px;">General & System Settings</h2>
-                                <p style="font-size: 12px; color: #94a3b8;">Configure organization profile, regional localization, sales numbering prefixes, inventory thresholds, and notifications.</p>
+                                <p style="font-size: 12px; color: #94a3b8;">Configure organization profile, GST settlement banking, regional localization, sales numbering prefixes, inventory thresholds, and notifications.</p>
                             </div>
                         </div>
 
@@ -2282,6 +2626,10 @@
                             <button type="button" class="settings-nav-btn active" id="btn-subnav-company" onclick="switchSettingsSubSection('company')">
                                 <i data-lucide="building" style="width: 16px; height: 16px; color: #818cf8;"></i>
                                 <span>Company Profile</span>
+                            </button>
+                            <button type="button" class="settings-nav-btn" id="btn-subnav-banking" onclick="switchSettingsSubSection('banking')">
+                                <i data-lucide="landmark" style="width: 16px; height: 16px; color: #10b981;"></i>
+                                <span>Banking & GST</span>
                             </button>
                             <button type="button" class="settings-nav-btn" id="btn-subnav-localization" onclick="switchSettingsSubSection('localization')">
                                 <i data-lucide="globe-2" style="width: 16px; height: 16px; color: #22d3ee;"></i>
@@ -2322,63 +2670,112 @@
                                     <div class="form-row">
                                         <div class="form-group">
                                             <label class="form-label">Legal Registered Entity Name</label>
-                                            <input type="text" name="company_name" id="set_company_name" class="form-control" value="{{ $settings['company_name'] ?? 'Global B2B Solutions Inc.' }}" required>
+                                            <input type="text" name="company_name" id="set_company_name" class="form-control" value="{{ $settings['company_name'] ?? 'Apex Enterprise Solutions Pvt. Ltd.' }}" required>
                                         </div>
                                         <div class="form-group">
                                             <label class="form-label">Tagline / Brand Subtitle</label>
-                                            <input type="text" name="company_tagline" id="set_company_tagline" class="form-control" value="{{ $settings['company_tagline'] ?? 'Enterprise B2B Revenue & Fulfillment Platform' }}">
+                                            <input type="text" name="company_tagline" id="set_company_tagline" class="form-control" value="{{ $settings['company_tagline'] ?? 'Enterprise B2B Revenue & GST Fulfillment Platform' }}">
                                         </div>
                                     </div>
 
                                     <div class="form-row">
                                         <div class="form-group">
                                             <label class="form-label">Corporate Email Address</label>
-                                            <input type="email" name="company_email" id="set_company_email" class="form-control" value="{{ $settings['company_email'] ?? 'admin@saleserp.enterprise' }}" required>
+                                            <input type="email" name="company_email" id="set_company_email" class="form-control" value="{{ $settings['company_email'] ?? 'admin@saleserp.in' }}" required>
                                         </div>
                                         <div class="form-group">
                                             <label class="form-label">Official Phone / Hotline</label>
-                                            <input type="text" name="company_phone" id="set_company_phone" class="form-control" value="{{ $settings['company_phone'] ?? '+1 (800) 555-0199' }}">
-                                        </div>
-                                    </div>
-
-                                    <div class="form-row">
-                                        <div class="form-group">
-                                            <label class="form-label">Corporate Website URL</label>
-                                            <input type="url" name="company_website" id="set_company_website" class="form-control" value="{{ $settings['company_website'] ?? 'https://saleserp.enterprise' }}">
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="form-label">GST / Tax Identification Number</label>
-                                            <input type="text" name="tax_id" id="set_tax_id" class="form-control" value="{{ $settings['tax_id'] ?? 'US-TAX-88902148' }}">
+                                            <input type="text" name="company_phone" id="set_company_phone" class="form-control" value="{{ $settings['company_phone'] ?? '+91 (22) 6789-0123' }}">
                                         </div>
                                     </div>
 
                                     <div class="form-group">
+                                        <label class="form-label">Corporate Website URL</label>
+                                        <input type="url" name="company_website" id="set_company_website" class="form-control" value="{{ $settings['company_website'] ?? 'https://saleserp.in' }}">
+                                    </div>
+
+                                    <div class="form-group">
                                         <label class="form-label">Headquarters Street Address</label>
-                                        <input type="text" name="company_address" id="set_company_address" class="form-control" value="{{ $settings['company_address'] ?? '100 Enterprise Way, Suite 400' }}">
+                                        <input type="text" name="company_address" id="set_company_address" class="form-control" value="{{ $settings['company_address'] ?? '100 Enterprise Tower, BKC Complex' }}">
                                     </div>
 
                                     <div class="form-row" style="grid-template-columns: 1.2fr 1fr 1fr 1fr;">
                                         <div class="form-group">
                                             <label class="form-label">City</label>
-                                            <input type="text" name="company_city" id="set_company_city" class="form-control" value="{{ $settings['company_city'] ?? 'San Francisco' }}">
+                                            <input type="text" name="company_city" id="set_company_city" class="form-control" value="{{ $settings['company_city'] ?? 'Mumbai' }}">
                                         </div>
                                         <div class="form-group">
                                             <label class="form-label">State / Province</label>
-                                            <input type="text" name="company_state" id="set_company_state" class="form-control" value="{{ $settings['company_state'] ?? 'California' }}">
+                                            <input type="text" name="company_state" id="set_company_state" class="form-control" value="{{ $settings['company_state'] ?? 'Maharashtra' }}">
                                         </div>
                                         <div class="form-group">
-                                            <label class="form-label">ZIP / Postal Code</label>
-                                            <input type="text" name="company_postal_code" id="set_company_postal_code" class="form-control" value="{{ $settings['company_postal_code'] ?? '94105' }}">
+                                            <label class="form-label">PIN / Postal Code</label>
+                                            <input type="text" name="company_postal_code" id="set_company_postal_code" class="form-control" value="{{ $settings['company_postal_code'] ?? '400051' }}">
                                         </div>
                                         <div class="form-group">
                                             <label class="form-label">Country</label>
-                                            <input type="text" name="company_country" id="set_company_country" class="form-control" value="{{ $settings['company_country'] ?? 'United States' }}">
+                                            <input type="text" name="company_country" id="set_company_country" class="form-control" value="{{ $settings['company_country'] ?? 'India' }}">
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- SECTION 2: Localization & Currency -->
+                            <!-- SECTION 2: Banking & GST Settlement Details -->
+                            <div id="settings-section-banking" class="settings-section">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <div class="card-title">
+                                            <i data-lucide="landmark" style="color: #10b981;"></i>
+                                            Banking, UPI & GST Tax Identification
+                                        </div>
+                                        <span class="badge badge-success">Invoice Settlement</span>
+                                    </div>
+
+                                    <div class="form-row" style="grid-template-columns: 1.2fr 1fr 1fr;">
+                                        <div class="form-group">
+                                            <label class="form-label">GSTIN (Tax Identification Number)</label>
+                                            <input type="text" name="tax_id" id="set_tax_id" class="form-control" value="{{ $settings['tax_id'] ?? '27AAACA1234F1Z5' }}" placeholder="e.g. 27AAACA1234F1Z5">
+                                            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Indian Goods and Services Tax Identification Number</div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">PAN Number</label>
+                                            <input type="text" name="company_pan" id="set_company_pan" class="form-control" value="{{ $settings['company_pan'] ?? 'AAACA1234F' }}" placeholder="e.g. AAACA1234F">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">GST State Code</label>
+                                            <input type="text" name="company_state_code" id="set_company_state_code" class="form-control" value="{{ $settings['company_state_code'] ?? '27' }}" placeholder="e.g. 27 for Maharashtra">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Official Bank Name</label>
+                                            <input type="text" name="bank_name" id="set_bank_name" class="form-control" value="{{ $settings['bank_name'] ?? 'HDFC Bank Ltd.' }}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Current Account Number</label>
+                                            <input type="text" name="bank_account_no" id="set_bank_account_no" class="form-control" value="{{ $settings['bank_account_no'] ?? '50200012345678' }}">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-row" style="grid-template-columns: 1fr 1.2fr 1.2fr;">
+                                        <div class="form-group">
+                                            <label class="form-label">Bank IFSC Code</label>
+                                            <input type="text" name="bank_ifsc" id="set_bank_ifsc" class="form-control" value="{{ $settings['bank_ifsc'] ?? 'HDFC0000123' }}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Bank Branch Name</label>
+                                            <input type="text" name="bank_branch" id="set_bank_branch" class="form-control" value="{{ $settings['bank_branch'] ?? 'BKC Bandra, Mumbai' }}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">UPI VPA Handle</label>
+                                            <input type="text" name="upi_id" id="set_upi_id" class="form-control" value="{{ $settings['upi_id'] ?? 'apexsolutions@okhdfcbank' }}" placeholder="name@bank">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SECTION 3: Localization & Currency -->
                             <div id="settings-section-localization" class="settings-section">
                                 <div class="card">
                                     <div class="card-header">
@@ -2392,11 +2789,11 @@
                                     <div class="form-row">
                                         <div class="form-group">
                                             <label class="form-label">Base Currency Code</label>
-                                            <select name="default_currency" id="set_default_currency" class="form-control">
-                                                <option value="USD" {{ ($settings['default_currency'] ?? 'USD') === 'USD' ? 'selected' : '' }}>USD - United States Dollar ($)</option>
+                                            <select name="default_currency" id="set_default_currency" class="form-control" onchange="onCurrencySelectChange(this.value)">
+                                                <option value="INR" {{ ($settings['default_currency'] ?? 'INR') === 'INR' ? 'selected' : '' }}>INR - Indian Rupee (₹)</option>
+                                                <option value="USD" {{ ($settings['default_currency'] ?? '') === 'USD' ? 'selected' : '' }}>USD - United States Dollar ($)</option>
                                                 <option value="EUR" {{ ($settings['default_currency'] ?? '') === 'EUR' ? 'selected' : '' }}>EUR - Euro (€)</option>
                                                 <option value="GBP" {{ ($settings['default_currency'] ?? '') === 'GBP' ? 'selected' : '' }}>GBP - British Pound (£)</option>
-                                                <option value="INR" {{ ($settings['default_currency'] ?? '') === 'INR' ? 'selected' : '' }}>INR - Indian Rupee (₹)</option>
                                                 <option value="CAD" {{ ($settings['default_currency'] ?? '') === 'CAD' ? 'selected' : '' }}>CAD - Canadian Dollar (CA$)</option>
                                                 <option value="AUD" {{ ($settings['default_currency'] ?? '') === 'AUD' ? 'selected' : '' }}>AUD - Australian Dollar (AU$)</option>
                                                 <option value="SGD" {{ ($settings['default_currency'] ?? '') === 'SGD' ? 'selected' : '' }}>SGD - Singapore Dollar (S$)</option>
@@ -2405,7 +2802,7 @@
                                         </div>
                                         <div class="form-group">
                                             <label class="form-label">Currency Symbol</label>
-                                            <input type="text" name="currency_symbol" id="set_currency_symbol" class="form-control" value="{{ $settings['currency_symbol'] ?? '$' }}" required>
+                                            <input type="text" name="currency_symbol" id="set_currency_symbol" class="form-control" value="{{ $settings['currency_symbol'] ?? '₹' }}" required>
                                         </div>
                                     </div>
 
@@ -2413,25 +2810,23 @@
                                         <div class="form-group">
                                             <label class="form-label">Currency Symbol Placement</label>
                                             <select name="currency_position" id="set_currency_position" class="form-control">
-                                                <option value="prefix" {{ ($settings['currency_position'] ?? 'prefix') === 'prefix' ? 'selected' : '' }}>Prefix (e.g. $1,000.00)</option>
-                                                <option value="suffix" {{ ($settings['currency_position'] ?? '') === 'suffix' ? 'selected' : '' }}>Suffix (e.g. 1,000.00 $)</option>
+                                                <option value="prefix" {{ ($settings['currency_position'] ?? 'prefix') === 'prefix' ? 'selected' : '' }}>Prefix (e.g. ₹1,00,000.00)</option>
+                                                <option value="suffix" {{ ($settings['currency_position'] ?? '') === 'suffix' ? 'selected' : '' }}>Suffix (e.g. 1,00,000.00 ₹)</option>
                                             </select>
                                         </div>
                                         <div class="form-group">
                                             <label class="form-label">Default System Timezone</label>
                                             <select name="timezone" id="set_timezone" class="form-control">
-                                                <option value="America/New_York" {{ ($settings['timezone'] ?? 'America/New_York') === 'America/New_York' ? 'selected' : '' }}>Eastern Time (US & Canada - UTC-5)</option>
+                                                <option value="Asia/Kolkata" {{ ($settings['timezone'] ?? 'Asia/Kolkata') === 'Asia/Kolkata' ? 'selected' : '' }}>India Standard Time (IST - UTC+5:30)</option>
+                                                <option value="America/New_York" {{ ($settings['timezone'] ?? '') === 'America/New_York' ? 'selected' : '' }}>Eastern Time (US & Canada - UTC-5)</option>
                                                 <option value="America/Chicago" {{ ($settings['timezone'] ?? '') === 'America/Chicago' ? 'selected' : '' }}>Central Time (US & Canada - UTC-6)</option>
-                                                <option value="America/Denver" {{ ($settings['timezone'] ?? '') === 'America/Denver' ? 'selected' : '' }}>Mountain Time (US & Canada - UTC-7)</option>
                                                 <option value="America/Los_Angeles" {{ ($settings['timezone'] ?? '') === 'America/Los_Angeles' ? 'selected' : '' }}>Pacific Time (US & Canada - UTC-8)</option>
                                                 <option value="UTC" {{ ($settings['timezone'] ?? '') === 'UTC' ? 'selected' : '' }}>UTC (Coordinated Universal Time)</option>
                                                 <option value="Europe/London" {{ ($settings['timezone'] ?? '') === 'Europe/London' ? 'selected' : '' }}>London, Dublin (UTC+0 / UTC+1)</option>
-                                                <option value="Europe/Paris" {{ ($settings['timezone'] ?? '') === 'Europe/Paris' ? 'selected' : '' }}>Paris, Berlin, Amsterdam (UTC+1 / UTC+2)</option>
+                                                <option value="Europe/Paris" {{ ($settings['timezone'] ?? '') === 'Europe/Paris' ? 'selected' : '' }}>Paris, Berlin (UTC+1 / UTC+2)</option>
                                                 <option value="Asia/Dubai" {{ ($settings['timezone'] ?? '') === 'Asia/Dubai' ? 'selected' : '' }}>Dubai, Abu Dhabi (UTC+4)</option>
-                                                <option value="Asia/Kolkata" {{ ($settings['timezone'] ?? '') === 'Asia/Kolkata' ? 'selected' : '' }}>India Standard Time (IST - UTC+5:30)</option>
                                                 <option value="Asia/Singapore" {{ ($settings['timezone'] ?? '') === 'Asia/Singapore' ? 'selected' : '' }}>Singapore, Hong Kong (UTC+8)</option>
                                                 <option value="Asia/Tokyo" {{ ($settings['timezone'] ?? '') === 'Asia/Tokyo' ? 'selected' : '' }}>Tokyo, Seoul (UTC+9)</option>
-                                                <option value="Australia/Sydney" {{ ($settings['timezone'] ?? '') === 'Australia/Sydney' ? 'selected' : '' }}>Sydney, Melbourne (UTC+10 / UTC+11)</option>
                                             </select>
                                         </div>
                                     </div>
@@ -2440,21 +2835,21 @@
                                         <div class="form-group">
                                             <label class="form-label">Date Display Format</label>
                                             <select name="date_format" id="set_date_format" class="form-control">
-                                                <option value="Y-m-d" {{ ($settings['date_format'] ?? 'Y-m-d') === 'Y-m-d' ? 'selected' : '' }}>YYYY-MM-DD (2026-08-19)</option>
-                                                <option value="d/m/Y" {{ ($settings['date_format'] ?? '') === 'd/m/Y' ? 'selected' : '' }}>DD/MM/YYYY (19/08/2026)</option>
-                                                <option value="m/d/Y" {{ ($settings['date_format'] ?? '') === 'm/d/Y' ? 'selected' : '' }}>MM/DD/YYYY (08/19/2026)</option>
-                                                <option value="M d, Y" {{ ($settings['date_format'] ?? '') === 'M d, Y' ? 'selected' : '' }}>Month DD, YYYY (Aug 19, 2026)</option>
+                                                <option value="d/m/Y" {{ ($settings['date_format'] ?? 'd/m/Y') === 'd/m/Y' ? 'selected' : '' }}>DD/MM/YYYY (20/08/2026)</option>
+                                                <option value="Y-m-d" {{ ($settings['date_format'] ?? '') === 'Y-m-d' ? 'selected' : '' }}>YYYY-MM-DD (2026-08-20)</option>
+                                                <option value="m/d/Y" {{ ($settings['date_format'] ?? '') === 'm/d/Y' ? 'selected' : '' }}>MM/DD/YYYY (08/20/2026)</option>
+                                                <option value="M d, Y" {{ ($settings['date_format'] ?? '') === 'M d, Y' ? 'selected' : '' }}>Month DD, YYYY (Aug 20, 2026)</option>
                                             </select>
                                         </div>
                                         <div class="form-group">
                                             <label class="form-label">Financial Year Start (MM-DD)</label>
-                                            <input type="text" name="financial_year_start" id="set_financial_year_start" class="form-control" value="{{ $settings['financial_year_start'] ?? '01-01' }}" placeholder="01-01 or 04-01">
+                                            <input type="text" name="financial_year_start" id="set_financial_year_start" class="form-control" value="{{ $settings['financial_year_start'] ?? '04-01' }}" placeholder="04-01 (Apr 1) or 01-01 (Jan 1)">
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- SECTION 3: Sales & Invoicing -->
+                            <!-- SECTION 4: Sales & Invoicing -->
                             <div id="settings-section-sales" class="settings-section">
                                 <div class="card">
                                     <div class="card-header">
@@ -2486,7 +2881,7 @@
                                     <div class="form-row">
                                         <div class="form-group">
                                             <label class="form-label">Default Sales Tax Rate (%)</label>
-                                            <input type="number" step="0.01" min="0" max="100" name="default_tax_rate" id="set_default_tax_rate" class="form-control" value="{{ $settings['default_tax_rate'] ?? '10.00' }}" required>
+                                            <input type="number" step="0.01" min="0" max="100" name="default_tax_rate" id="set_default_tax_rate" class="form-control" value="{{ $settings['default_tax_rate'] ?? '18.00' }}" required>
                                         </div>
                                         <div class="form-group">
                                             <label class="form-label">Default Standard Payment Terms</label>
@@ -2521,7 +2916,7 @@
                                 </div>
                             </div>
 
-                            <!-- SECTION 4: Inventory & Stock -->
+                            <!-- SECTION 5: Inventory & Stock -->
                             <div id="settings-section-inventory" class="settings-section">
                                 <div class="card">
                                     <div class="card-header">
@@ -2561,7 +2956,7 @@
                                 </div>
                             </div>
 
-                            <!-- SECTION 5: Notification Alerts -->
+                            <!-- SECTION 6: Notification Alerts -->
                             <div id="settings-section-notifications" class="settings-section">
                                 <div class="card">
                                     <div class="card-header">
@@ -2574,7 +2969,7 @@
 
                                     <div class="form-group">
                                         <label class="form-label">Admin Alert Recipient Email</label>
-                                        <input type="email" name="admin_alert_email" id="set_admin_alert_email" class="form-control" value="{{ $settings['admin_alert_email'] ?? 'alerts@saleserp.enterprise' }}" required>
+                                        <input type="email" name="admin_alert_email" id="set_admin_alert_email" class="form-control" value="{{ $settings['admin_alert_email'] ?? 'alerts@saleserp.in' }}" required>
                                     </div>
 
                                     <div class="toggle-row">
@@ -2645,7 +3040,7 @@
                                 </div>
                             </div>
 
-                            <!-- SECTION 6: System Diagnostics -->
+                            <!-- SECTION 7: System Diagnostics -->
                             <div id="settings-section-system" class="settings-section">
                                 <div class="card">
                                     <div class="card-header">
@@ -2699,7 +3094,7 @@
                             <div class="card" style="margin-top: 16px; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; background: rgba(13, 19, 34, 0.95); border: 1px solid rgba(255, 255, 255, 0.1);">
                                 <div style="font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 6px;">
                                     <i data-lucide="info" style="width: 15px; height: 15px; color: var(--accent-cyan);"></i>
-                                    <span>Changes to prefixes and currency will take effect across new transactions.</span>
+                                    <span>Changes to prefixes, GSTIN, and currency will take effect across new transactions.</span>
                                 </div>
                                 <div style="display: flex; gap: 12px;">
                                     <button type="button" class="btn btn-secondary" onclick="resetSettingsToDefault()">Cancel & Reset</button>
@@ -3879,6 +4274,19 @@
                 'settings': 'General System Settings'
             };
             document.getElementById('page-heading').innerText = titles[tabId] || 'Sales ERP';
+
+            if (tabId === 'reports') {
+                setTimeout(() => {
+                    if (typeof initReportsCharts === 'function') {
+                        initReportsCharts();
+                    }
+                }, 60);
+            } else if (tabId === 'dashboard') {
+                setTimeout(() => {
+                    if (window.dashRevChartInst) window.dashRevChartInst.resize();
+                    if (window.dashPipeChartInst) window.dashPipeChartInst.resize();
+                }, 60);
+            }
         }
 
         // Helper to stay on current tab after reload
@@ -5469,6 +5877,23 @@
             if (window.lucide) lucide.createIcons();
         }
 
+        function onCurrencySelectChange(code) {
+            const symMap = {
+                'INR': '₹',
+                'USD': '$',
+                'EUR': '€',
+                'GBP': '£',
+                'CAD': 'CA$',
+                'AUD': 'AU$',
+                'SGD': 'S$',
+                'AED': 'AED'
+            };
+            const symInput = document.getElementById('set_currency_symbol');
+            if (symInput && symMap[code]) {
+                symInput.value = symMap[code];
+            }
+        }
+
         async function submitSettingsForm(e) {
             if (e && e.preventDefault) e.preventDefault();
             const form = document.getElementById('formGeneralSettings');
@@ -5530,6 +5955,9 @@
                     if (data.company_name) {
                         const brandTitle = document.querySelector('.brand-title');
                         if (brandTitle) brandTitle.innerText = data.company_name;
+                    }
+                    if (data.currency_symbol) {
+                        CURRENCY_SYM = data.currency_symbol;
                     }
                 } else {
                     showToast(json.message || 'Failed to save settings. Please verify inputs.', 'error');
@@ -5605,84 +6033,411 @@
             }
         }
 
+        // 21. Reporting & Business Intelligence Functions
+        function switchReportSubTab(subTabKey) {
+            document.querySelectorAll('.report-subpane').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.report-tab-pill').forEach(el => el.classList.remove('active'));
+
+            const pane = document.getElementById('rep-subpane-' + subTabKey);
+            if (pane) {
+                pane.style.display = 'block';
+                pane.classList.add('active');
+            }
+
+            const btn = document.getElementById('btn-rep-tab-' + subTabKey);
+            if (btn) btn.classList.add('active');
+
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function setReportDatePreset(preset, btn) {
+            document.querySelectorAll('.date-preset-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+
+            const now = new Date();
+            let start = new Date();
+            let end = new Date();
+
+            if (preset === 'month') {
+                start = new Date(now.getFullYear(), now.getMonth(), 1);
+                end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            } else if (preset === 'quarter') {
+                const qMonth = Math.floor(now.getMonth() / 3) * 3;
+                start = new Date(now.getFullYear(), qMonth, 1);
+                end = new Date(now.getFullYear(), qMonth + 3, 0);
+            } else if (preset === 'ytd') {
+                start = new Date(now.getFullYear(), 0, 1);
+                end = now;
+            } else if (preset === 'all') {
+                start = new Date(2020, 0, 1);
+                end = now;
+            }
+
+            const formatDate = (d) => {
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+            document.getElementById('rep_start_date').value = formatDate(start);
+            document.getElementById('rep_end_date').value = formatDate(end);
+
+            applyReportDateFilter();
+        }
+
+        async function applyReportDateFilter() {
+            const startDate = document.getElementById('rep_start_date').value;
+            const endDate = document.getElementById('rep_end_date').value;
+
+            try {
+                const [resSales, resTax] = await Promise.all([
+                    fetch(`/api/reports/sales-summary?start_date=${startDate}&end_date=${endDate}`),
+                    fetch(`/api/reports/tax-summary?start_date=${startDate}&end_date=${endDate}`)
+                ]);
+
+                if (resSales.ok && resTax.ok) {
+                    const sales = await resSales.json();
+                    const tax = await resTax.json();
+
+                    document.getElementById('kpi_invoiced').innerText = `${CURRENCY_SYM}${parseFloat(sales.total_invoiced).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+                    document.getElementById('kpi_invoices_count').innerText = `${sales.total_invoices_count} invoices generated`;
+                    document.getElementById('kpi_collected').innerText = `${CURRENCY_SYM}${parseFloat(sales.total_collected).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+                    document.getElementById('kpi_collection_rate').innerText = `${sales.collection_rate}% collection efficiency`;
+                    
+                    const outEl = document.getElementById('kpi_outstanding');
+                    outEl.innerText = `${CURRENCY_SYM}${parseFloat(sales.outstanding_balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+                    outEl.style.color = sales.outstanding_balance > 0 ? '#fb7185' : '#34d399';
+
+                    document.getElementById('tax_val_taxable').innerText = `${CURRENCY_SYM}${parseFloat(tax.taxable_value).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+                    document.getElementById('tax_val_cgst').innerText = `${CURRENCY_SYM}${parseFloat(tax.cgst_total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+                    document.getElementById('tax_val_sgst').innerText = `${CURRENCY_SYM}${parseFloat(tax.sgst_total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+                    document.getElementById('tax_val_igst').innerText = `${CURRENCY_SYM}${parseFloat(tax.igst_total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+                    document.getElementById('tax_val_total').innerText = `${CURRENCY_SYM}${parseFloat(tax.tax_total).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+
+                    showToast(`Report data refreshed for period: ${startDate} to ${endDate}`, 'success');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to refresh report metrics', 'error');
+            }
+        }
+
+        async function updateReportRevenueTrends(months, btn) {
+            document.getElementById('btnTrend6m').classList.remove('active');
+            document.getElementById('btnTrend12m').classList.remove('active');
+            if (btn) btn.classList.add('active');
+
+            try {
+                const res = await fetch(`/api/reports/revenue-trends?months=${months}`);
+                const data = await res.json();
+
+                if (window.reportRevTrendsChartInst) {
+                    window.reportRevTrendsChartInst.data.labels = data.map(d => d.label);
+                    window.reportRevTrendsChartInst.data.datasets[0].data = data.map(d => d.revenue);
+                    window.reportRevTrendsChartInst.data.datasets[1].data = data.map(d => d.invoiced || d.revenue);
+                    window.reportRevTrendsChartInst.update();
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function exportReportDataCsv() {
+            const rows = [
+                ['Sales ERP Executive Performance & GST Tax Report'],
+                ['Generated Date', new Date().toLocaleString()],
+                [],
+                ['--- SALES SUMMARY & KEY METRICS ---'],
+                ['Metric', 'Value'],
+                ['Projected 12M ARR', document.getElementById('kpi_arr')?.innerText || ''],
+                ['Total Invoiced', document.getElementById('kpi_invoiced')?.innerText || ''],
+                ['Realized Collections', document.getElementById('kpi_collected')?.innerText || ''],
+                ['Outstanding Balance', document.getElementById('kpi_outstanding')?.innerText || ''],
+                [],
+                ['--- GST TAX REVENUE BREAKDOWN ---'],
+                ['Tax Component', 'Amount'],
+                ['Taxable Goods/Services Value', document.getElementById('tax_val_taxable')?.innerText || ''],
+                ['CGST Output Tax', document.getElementById('tax_val_cgst')?.innerText || ''],
+                ['SGST Output Tax', document.getElementById('tax_val_sgst')?.innerText || ''],
+                ['IGST Output Tax', document.getElementById('tax_val_igst')?.innerText || ''],
+                ['Total GST Collected', document.getElementById('tax_val_total')?.innerText || '']
+            ];
+
+            let csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.map(cell => `"${(cell || '').replace(/"/g, '""')}"`).join(",")).join("\n");
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `sales_erp_analytics_report_${new Date().toISOString().slice(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('Executive analytics CSV exported successfully!', 'success');
+        }
+
+        function printReportSummary() {
+            window.print();
+        }
+
+        let reportChartsInitialized = false;
+        function initReportsCharts() {
+            if (reportChartsInitialized) {
+                if (window.reportRevTrendsChartInst) window.reportRevTrendsChartInst.resize();
+                if (window.reportPipeDistChartInst) window.reportPipeDistChartInst.resize();
+                if (window.reportTerritoryShareChartInst) window.reportTerritoryShareChartInst.resize();
+                if (window.reportProductShareChartInst) window.reportProductShareChartInst.resize();
+                return;
+            }
+
+            const revenueTrendsData = @json($revenueTrends);
+            const pipelineData = @json($pipeline);
+            const territoryData = @json($territoryPerformance);
+            const productData = @json($productPerformance);
+
+            // 1. Report Revenue Trends Chart (Bar + Line)
+            const ctxRev = document.getElementById('reportRevenueTrendsChart');
+            if (ctxRev) {
+                window.reportRevTrendsChartInst = new Chart(ctxRev.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: revenueTrendsData.map(d => d.label),
+                        datasets: [
+                            {
+                                type: 'line',
+                                label: 'Collected Revenue (' + CURRENCY_SYM + ')',
+                                data: revenueTrendsData.map(d => d.revenue),
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                                fill: true,
+                                tension: 0.4,
+                                borderWidth: 3,
+                                order: 1
+                            },
+                            {
+                                type: 'bar',
+                                label: 'Total Invoiced (' + CURRENCY_SYM + ')',
+                                data: revenueTrendsData.map(d => d.invoiced || d.revenue),
+                                backgroundColor: 'rgba(99, 102, 241, 0.5)',
+                                borderColor: '#6366f1',
+                                borderWidth: 1,
+                                borderRadius: 6,
+                                order: 2
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: '#cbd5e1', font: { family: 'Plus Jakarta Sans', size: 11 } } }
+                        },
+                        scales: {
+                            x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } },
+                            y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } }
+                        }
+                    }
+                });
+            }
+
+            // 2. Pipeline Distribution Doughnut Chart
+            const ctxPipe = document.getElementById('reportPipelineDistChart');
+            if (ctxPipe) {
+                const stagesKeys = ['prospecting', 'qualification', 'proposal', 'negotiation', 'closed_won'];
+                const stagesLabels = ['Prospecting', 'Qualification', 'Proposal', 'Negotiation', 'Closed Won'];
+                const stagesValues = stagesKeys.map(k => pipelineData[k] ? pipelineData[k].total_amount : 0);
+
+                window.reportPipeDistChartInst = new Chart(ctxPipe.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: stagesLabels,
+                        datasets: [{
+                            data: stagesValues,
+                            backgroundColor: ['#64748b', '#3b82f6', '#8b5cf6', '#f59e0b', '#10b981'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { color: '#cbd5e1', font: { size: 11 } } }
+                        },
+                        cutout: '65%'
+                    }
+                });
+            }
+
+            // 3. Territory Share Horizontal Bar Chart
+            const ctxTerritory = document.getElementById('reportTerritoryShareChart');
+            if (ctxTerritory) {
+                const tLabels = territoryData.map(t => t.name);
+                const tSales = territoryData.map(t => t.total_sales);
+                const tPipeline = territoryData.map(t => t.active_pipeline);
+
+                window.reportTerritoryShareChartInst = new Chart(ctxTerritory.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: tLabels.length > 0 ? tLabels : ['North Territory', 'South Zone', 'West Zone', 'East Zone'],
+                        datasets: [
+                            {
+                                label: 'Won Sales (' + CURRENCY_SYM + ')',
+                                data: tSales.length > 0 ? tSales : [150000, 220000, 180000, 95000],
+                                backgroundColor: '#10b981',
+                                borderRadius: 4
+                            },
+                            {
+                                label: 'Active Pipeline (' + CURRENCY_SYM + ')',
+                                data: tPipeline.length > 0 ? tPipeline : [80000, 120000, 140000, 60000],
+                                backgroundColor: '#06b6d4',
+                                borderRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { color: '#cbd5e1', font: { size: 10 } } }
+                        },
+                        scales: {
+                            x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } },
+                            y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#cbd5e1' } }
+                        }
+                    }
+                });
+            }
+
+            // 4. Product Share Chart
+            const ctxProduct = document.getElementById('reportProductShareChart');
+            if (ctxProduct) {
+                const pSlice = productData.slice(0, 5);
+                const pLabels = pSlice.map(p => p.name.length > 18 ? p.name.substring(0, 18) + '...' : p.name);
+                const pRevenues = pSlice.map(p => p.revenue_generated);
+
+                window.reportProductShareChartInst = new Chart(ctxProduct.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: pLabels.length > 0 ? pLabels : ['Enterprise License', 'Cloud Storage', 'Custom SLA', 'Consulting'],
+                        datasets: [{
+                            label: 'Revenue (' + CURRENCY_SYM + ')',
+                            data: pRevenues.length > 0 ? pRevenues : [120000, 85000, 60000, 45000],
+                            backgroundColor: ['#6366f1', '#06b6d4', '#34d399', '#fbbf24', '#f43f5e'],
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#cbd5e1', font: { size: 10 } } },
+                            y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } }
+                        }
+                    }
+                });
+            }
+
+            reportChartsInitialized = true;
+        }
+
         window.switchSettingsSubSection = switchSettingsSubSection;
+        window.onCurrencySelectChange = onCurrencySelectChange;
         window.submitSettingsForm = submitSettingsForm;
         window.resetSettingsToDefault = resetSettingsToDefault;
         window.clearSystemCache = clearSystemCache;
+        window.switchReportSubTab = switchReportSubTab;
+        window.setReportDatePreset = setReportDatePreset;
+        window.applyReportDateFilter = applyReportDateFilter;
+        window.updateReportRevenueTrends = updateReportRevenueTrends;
+        window.exportReportDataCsv = exportReportDataCsv;
+        window.printReportSummary = printReportSummary;
+        window.initReportsCharts = initReportsCharts;
 
-        // 21. Chart.js Graphs Initialization & Tab Restoration
+        // 22. Chart.js Graphs Initialization & Tab Restoration
         document.addEventListener('DOMContentLoaded', () => {
             restoreTabState();
 
             const revenueTrendsData = @json($revenueTrends);
             const pipelineData = @json($pipeline);
 
-            // Revenue Chart
-            const ctxRev = document.getElementById('revenueChart').getContext('2d');
-            new Chart(ctxRev, {
-                type: 'line',
-                data: {
-                    labels: revenueTrendsData.map(d => d.label),
-                    datasets: [
-                        {
-                            label: 'Collected Revenue ($)',
-                            data: revenueTrendsData.map(d => d.revenue),
-                            borderColor: '#10b981',
-                            backgroundColor: 'rgba(16, 185, 129, 0.12)',
-                            fill: true,
-                            tension: 0.4,
-                            borderWidth: 3
+            // Dashboard Revenue Chart
+            const ctxRev = document.getElementById('revenueChart');
+            if (ctxRev) {
+                window.dashRevChartInst = new Chart(ctxRev.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: revenueTrendsData.map(d => d.label),
+                        datasets: [
+                            {
+                                label: 'Collected Revenue (' + CURRENCY_SYM + ')',
+                                data: revenueTrendsData.map(d => d.revenue),
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                                fill: true,
+                                tension: 0.4,
+                                borderWidth: 3
+                            },
+                            {
+                                label: 'Pipeline Added (' + CURRENCY_SYM + ')',
+                                data: revenueTrendsData.map(d => d.pipeline_added),
+                                borderColor: '#6366f1',
+                                backgroundColor: 'rgba(99, 102, 241, 0.08)',
+                                fill: true,
+                                tension: 0.4,
+                                borderWidth: 2,
+                                borderDash: [5, 5]
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: '#cbd5e1', font: { family: 'Plus Jakarta Sans', size: 12 } } }
                         },
-                        {
-                            label: 'Pipeline Added ($)',
-                            data: revenueTrendsData.map(d => d.pipeline_added),
-                            borderColor: '#6366f1',
-                            backgroundColor: 'rgba(99, 102, 241, 0.08)',
-                            fill: true,
-                            tension: 0.4,
-                            borderWidth: 2,
-                            borderDash: [5, 5]
+                        scales: {
+                            x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } },
+                            y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } }
                         }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { labels: { color: '#cbd5e1', font: { family: 'Plus Jakarta Sans', size: 12 } } }
-                    },
-                    scales: {
-                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } },
-                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } }
                     }
-                }
-            });
+                });
+            }
 
-            // Pipeline Doughnut Chart
-            const ctxPipe = document.getElementById('pipelineChart').getContext('2d');
-            const stagesKeys = ['prospecting', 'qualification', 'proposal', 'negotiation', 'closed_won'];
-            const stagesLabels = ['Prospecting', 'Qualification', 'Proposal', 'Negotiation', 'Closed Won'];
-            const stagesValues = stagesKeys.map(k => pipelineData[k] ? pipelineData[k].total_amount : 0);
+            // Dashboard Pipeline Doughnut Chart
+            const ctxPipe = document.getElementById('pipelineChart');
+            if (ctxPipe) {
+                const stagesKeys = ['prospecting', 'qualification', 'proposal', 'negotiation', 'closed_won'];
+                const stagesLabels = ['Prospecting', 'Qualification', 'Proposal', 'Negotiation', 'Closed Won'];
+                const stagesValues = stagesKeys.map(k => pipelineData[k] ? pipelineData[k].total_amount : 0);
 
-            new Chart(ctxPipe, {
-                type: 'doughnut',
-                data: {
-                    labels: stagesLabels,
-                    datasets: [{
-                        data: stagesValues,
-                        backgroundColor: ['#64748b', '#3b82f6', '#8b5cf6', '#f59e0b', '#10b981'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom', labels: { color: '#cbd5e1', font: { size: 11 } } }
+                window.dashPipeChartInst = new Chart(ctxPipe.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: stagesLabels,
+                        datasets: [{
+                            data: stagesValues,
+                            backgroundColor: ['#64748b', '#3b82f6', '#8b5cf6', '#f59e0b', '#10b981'],
+                            borderWidth: 0
+                        }]
                     },
-                    cutout: '65%'
-                }
-            });
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { color: '#cbd5e1', font: { size: 11 } } }
+                        },
+                        cutout: '65%'
+                    }
+                });
+            }
+
+            const currentTab = localStorage.getItem('active_erp_tab') || (window.location.hash ? window.location.hash.replace('#', '') : 'dashboard');
+            if (currentTab === 'reports') {
+                setTimeout(initReportsCharts, 100);
+            }
         });
     </script>
 </body>

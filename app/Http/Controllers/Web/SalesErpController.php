@@ -45,6 +45,8 @@ class SalesErpController extends Controller
         $topPerformers = $this->reportService->getTopPerformers(5);
         $territoryPerformance = $this->reportService->getTerritoryPerformance();
         $productPerformance = $this->reportService->getProductPerformance();
+        $salesSummary = $this->reportService->getSalesSummary();
+        $taxSummary = $this->reportService->getTaxSummary();
 
         $leads = Lead::with(['customer', 'assignedUser'])->orderBy('created_at', 'desc')->get();
         $opportunities = Opportunity::with(['customer', 'assignedUser', 'opportunityProducts.product'])->orderBy('created_at', 'desc')->get();
@@ -78,6 +80,8 @@ class SalesErpController extends Controller
             'topPerformers',
             'territoryPerformance',
             'productPerformance',
+            'salesSummary',
+            'taxSummary',
             'leads',
             'opportunities',
             'customers',

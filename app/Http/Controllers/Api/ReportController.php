@@ -61,4 +61,12 @@ class ReportController extends Controller
         $trends = $this->reportService->getRevenueTrends((int)$months);
         return response()->json($trends);
     }
+
+    public function taxSummary(Request $request): JsonResponse
+    {
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
+        $taxSummary = $this->reportService->getTaxSummary($startDate, $endDate);
+        return response()->json($taxSummary);
+    }
 }

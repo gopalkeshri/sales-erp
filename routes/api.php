@@ -183,6 +183,7 @@ Route::middleware(['auth:sanctum,web', 'activity.log'])->group(function () {
         Route::get('/territory-performance', [ReportController::class, 'territoryPerformance']);
         Route::get('/product-performance', [ReportController::class, 'productPerformance']);
         Route::get('/revenue-trends', [ReportController::class, 'revenueTrends']);
+        Route::get('/tax-summary', [ReportController::class, 'taxSummary']);
     });
 
     // 14. Dashboard Module
