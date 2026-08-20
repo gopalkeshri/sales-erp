@@ -27,6 +27,13 @@ class Invoice extends Model
         'currency',
         'payment_terms',
         'notes',
+        'place_of_supply',
+        'state_code',
+        'gst_type',
+        'cgst_total',
+        'sgst_total',
+        'igst_total',
+        'is_reverse_charge',
         'assigned_to',
         'territory_id',
         'created_by',
@@ -43,6 +50,10 @@ class Invoice extends Model
             'total' => 'decimal:2',
             'amount_paid' => 'decimal:2',
             'balance_due' => 'decimal:2',
+            'cgst_total' => 'decimal:2',
+            'sgst_total' => 'decimal:2',
+            'igst_total' => 'decimal:2',
+            'is_reverse_charge' => 'boolean',
         ];
     }
 

@@ -949,6 +949,15 @@
             color: #ffffff;
             word-break: break-all;
         }
+
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -999,6 +1008,12 @@
 
             <div class="nav-section">Operations & Finance</div>
 
+            <a class="nav-item" onclick="switchTab('products')">
+                <i data-lucide="package"></i>
+                <span>Products & Catalog</span>
+                <span class="nav-badge" id="badge-products-count">{{ $products->count() }}</span>
+            </a>
+
             <a class="nav-item" onclick="switchTab('inventory')">
                 <i data-lucide="boxes"></i>
                 <span>Inventory & Warehouses</span>
@@ -1007,7 +1022,7 @@
 
             <a class="nav-item" onclick="switchTab('invoices')">
                 <i data-lucide="receipt"></i>
-                <span>Invoice & Billing</span>
+                <span>GST Invoices & Billing</span>
                 <span class="nav-badge">{{ $invoices->count() }}</span>
             </a>
 
@@ -1535,118 +1550,148 @@
                 </div>
             </div>
 
-            <!-- TAB 6: INVOICES & BILLING -->
-            <div id="tab-invoices" class="tab-pane">
-                <!-- Invoice KPI Summary -->
+            <!-- TAB 6: PRODUCTS & SERVICES CATALOG -->
+            <div id="tab-products" class="tab-pane">
+                <!-- Products KPI Summary -->
                 <div class="kpi-grid">
                     <div class="kpi-card">
                         <div class="kpi-top">
-                            <span class="kpi-label">Total Invoiced</span>
+                            <span class="kpi-label">Total Catalog Items</span>
+                            <div class="kpi-icon-box" style="background: rgba(99, 102, 241, 0.15); color: #818cf8;">
+                                <i data-lucide="package"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">{{ $products->count() }}</div>
+                        <div class="kpi-subtext">Active SKUs & Service lines</div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-top">
+                            <span class="kpi-label">Physical Goods / SKUs</span>
                             <div class="kpi-icon-box" style="background: rgba(6, 182, 212, 0.15); color: #22d3ee;">
-                                <i data-lucide="file-check"></i>
+                                <i data-lucide="boxes"></i>
                             </div>
                         </div>
-                        <div class="kpi-value">${{ number_format($invoices->sum('total'), 2) }}</div>
-                        <div class="kpi-subtext">{{ $invoices->count() }} total billed invoices</div>
+                        <div class="kpi-value">{{ $products->where('type', 'product')->count() }}</div>
+                        <div class="kpi-subtext">Tracked warehouse inventory</div>
                     </div>
 
                     <div class="kpi-card">
                         <div class="kpi-top">
-                            <span class="kpi-label">Collected Payments</span>
+                            <span class="kpi-label">Services & Subscriptions</span>
                             <div class="kpi-icon-box" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
-                                <i data-lucide="check-circle-2"></i>
+                                <i data-lucide="layers"></i>
                             </div>
                         </div>
-                        <div class="kpi-value">${{ number_format($invoices->sum('amount_paid'), 2) }}</div>
-                        <div class="kpi-subtext" style="color: #34d399;">{{ $invoices->where('status', 'paid')->count() }} fully paid invoices</div>
+                        <div class="kpi-value">{{ $products->where('type', 'service')->count() }}</div>
+                        <div class="kpi-subtext">SLA, Cloud & Annual Licenses</div>
                     </div>
 
                     <div class="kpi-card">
                         <div class="kpi-top">
-                            <span class="kpi-label">Outstanding Balance</span>
-                            <div class="kpi-icon-box" style="background: rgba(244, 63, 94, 0.15); color: #fb7185;">
-                                <i data-lucide="alert-triangle"></i>
-                            </div>
-                        </div>
-                        <div class="kpi-value">${{ number_format($invoices->sum('balance_due'), 2) }}</div>
-                        <div class="kpi-subtext">Receivables pending collection</div>
-                    </div>
-
-                    <div class="kpi-card">
-                        <div class="kpi-top">
-                            <span class="kpi-label">Overdue Count</span>
+                            <span class="kpi-label">Inventory Balance</span>
                             <div class="kpi-icon-box" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">
-                                <i data-lucide="clock"></i>
+                                <i data-lucide="warehouse"></i>
                             </div>
                         </div>
-                        <div class="kpi-value">{{ $invoices->where('status', 'overdue')->count() }}</div>
-                        <div class="kpi-subtext">Past due payment terms</div>
+                        <div class="kpi-value">{{ $inventory->sum('quantity') }}</div>
+                        <div class="kpi-subtext">Units across {{ $warehouses->count() }} depots</div>
                     </div>
                 </div>
 
                 <div class="card">
-                    <div class="card-header">
+                    <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
                         <div class="card-title">
-                            <i data-lucide="receipt" style="color: var(--accent-cyan);"></i>
-                            Tax Invoices & Payment Reconciliation
+                            <i data-lucide="package-search" style="color: var(--primary);"></i>
+                            Product & Service Master Catalog
                         </div>
-                        <button class="btn btn-primary" onclick="openModal('createInvoiceModal')">
-                            <i data-lucide="plus"></i> Generate Direct Invoice
-                        </button>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn btn-secondary" onclick="filterProductType('all')">All ({{ $products->count() }})</button>
+                            <button class="btn btn-secondary" onclick="filterProductType('product')">Physical Goods</button>
+                            <button class="btn btn-secondary" onclick="filterProductType('service')">Services / SAC</button>
+                            <button class="btn btn-primary" onclick="openModal('createProductModal')">
+                                <i data-lucide="plus"></i> Add Product / Service
+                            </button>
+                        </div>
                     </div>
 
                     <div class="table-responsive">
-                        <table id="table-invoices">
+                        <table id="table-products">
                             <thead>
                                 <tr>
-                                    <th>Invoice #</th>
-                                    <th>Customer Account</th>
+                                    <th>SKU / Item Code</th>
+                                    <th>Product Name & Category</th>
+                                    <th>Type</th>
+                                    <th>HSN / SAC Code</th>
+                                    <th>Unit Price ({{ $settings['currency_symbol'] ?? '₹' }})</th>
+                                    <th>GST Slab</th>
+                                    <th>Total Stock</th>
                                     <th>Status</th>
-                                    <th>Due Date</th>
-                                    <th>Total ($)</th>
-                                    <th>Paid ($)</th>
-                                    <th>Balance Due ($)</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($invoices as $inv)
-                                <tr>
-                                    <td style="font-weight: 700; color: white;">{{ $inv->invoice_number }}</td>
-                                    <td>{{ $inv->customer->company_name ?? 'N/A' }}</td>
+                                @forelse($products as $p)
+                                <tr class="prod-row" data-type="{{ $p->type }}">
+                                    <td style="font-weight: 700; color: var(--accent-cyan); font-family: monospace; font-size: 13px;">
+                                        {{ $p->sku }}
+                                    </td>
                                     <td>
-                                        <span class="badge {{ $inv->status === 'paid' ? 'badge-success' : ($inv->status === 'partial' ? 'badge-warning' : ($inv->status === 'overdue' ? 'badge-danger' : 'badge-info')) }}">
-                                            {{ ucfirst($inv->status) }}
+                                        <div style="font-weight: 700; color: white;">{{ $p->name }}</div>
+                                        <div style="font-size: 11px; color: #94a3b8;">{{ $p->category ?: 'General' }} @if($p->subcategory) • {{ $p->subcategory }} @endif</div>
+                                    </td>
+                                    <td>
+                                        <span class="badge {{ $p->type === 'product' ? 'badge-info' : 'badge-purple' }}">
+                                            {{ $p->type === 'product' ? 'Physical Good' : 'Service / SLA' }}
                                         </span>
                                     </td>
-                                    <td>{{ $inv->due_date ? $inv->due_date->format('M d, Y') : 'N/A' }}</td>
-                                    <td style="font-weight: 600;">${{ number_format($inv->total, 2) }}</td>
-                                    <td style="color: #34d399; font-weight: 600;">${{ number_format($inv->amount_paid, 2) }}</td>
-                                    <td style="color: #fb7185; font-weight: 700;">${{ number_format($inv->balance_due, 2) }}</td>
+                                    <td>
+                                        <code style="color: #fbbf24; font-size: 12px; font-weight: 600;">{{ $p->hsn_code ?: 'N/A' }}</code>
+                                    </td>
+                                    <td style="font-weight: 700; color: #ffffff;">
+                                        {{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($p->unit_price, 2) }}
+                                        <span style="font-size: 10px; color: #64748b;">/ {{ $p->unit ?: 'unit' }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-success">{{ number_format($p->tax_rate, 0) }}% GST</span>
+                                    </td>
+                                    <td>
+                                        @if($p->type === 'product')
+                                            @php $tStock = $p->inventories->sum('quantity'); @endphp
+                                            <span style="font-weight: 700; color: {{ $tStock <= $p->min_stock_level ? '#fb7185' : '#34d399' }};">
+                                                {{ $tStock }} {{ $p->unit ?: 'units' }}
+                                            </span>
+                                        @else
+                                            <span style="color: #94a3b8; font-size: 12px;">Unlimited (Service)</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <span class="badge {{ $p->is_active ? 'badge-success' : 'badge-neutral' }}">
+                                            {{ $p->is_active ? 'Active' : 'Archived' }}
+                                        </span>
+                                    </td>
                                     <td>
                                         <div style="display: flex; gap: 6px;">
-                                            @if($inv->balance_due > 0)
-                                            <button class="btn btn-sm btn-success" onclick="openPaymentModal({{ $inv->id }}, '{{ $inv->invoice_number }}', {{ $inv->balance_due }})">
-                                                <i data-lucide="credit-card" style="width: 14px; height: 14px;"></i> Pay
+                                            <button class="btn btn-sm btn-secondary" onclick="openEditProductModal({{ $p->id }})" title="Edit Product">
+                                                <i data-lucide="edit-2" style="width: 13px; height: 13px;"></i> Edit
+                                            </button>
+                                            @if($p->type === 'product')
+                                            <button class="btn btn-sm btn-secondary" onclick="openStockInWithProduct({{ $p->id }})" title="Stock In">
+                                                <i data-lucide="plus-circle" style="width: 13px; height: 13px; color: #34d399;"></i> Inward
                                             </button>
                                             @endif
-                                            <button class="btn btn-sm btn-secondary" onclick="viewInvoicePdf({{ $inv->id }}, '{{ $inv->invoice_number }}')">
-                                                <i data-lucide="printer" style="width: 14px; height: 14px;"></i> PDF
+                                            <button class="btn btn-sm btn-danger" onclick="deleteProduct({{ $p->id }}, '{{ addslashes($p->name) }}')" title="Delete Product">
+                                                <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
                                             </button>
-                                            @if($inv->status === 'draft')
-                                            <button class="btn btn-sm btn-secondary" onclick="sendInvoice({{ $inv->id }})">
-                                                <i data-lucide="send" style="width: 14px; height: 14px;"></i> Send
-                                            </button>
-                                            @endif
                                         </div>
                                     </td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="8" style="text-align: center; padding: 36px; color: #64748b;">
-                                        <i data-lucide="receipt" style="width: 28px; height: 28px; margin-bottom: 8px; opacity: 0.5;"></i>
-                                        <div style="font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">No Invoices Billed</div>
-                                        <div>Click <strong>Generate Direct Invoice</strong> or bill confirmed sales orders.</div>
+                                    <td colspan="9" style="text-align: center; padding: 36px; color: #64748b;">
+                                        <i data-lucide="package-search" style="width: 32px; height: 32px; margin-bottom: 8px; opacity: 0.5;"></i>
+                                        <div style="font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">No Products or Services Cataloged</div>
+                                        <div>Click <strong>Add Product / Service</strong> to create your product line and configure Indian GST rates & HSN codes.</div>
                                     </td>
                                 </tr>
                                 @endforelse
@@ -1701,7 +1746,7 @@
                             </div>
                         </div>
                         <div class="kpi-value">{{ $warehouses->count() }}</div>
-                        <div class="kpi-subtext">US West, East, EMEA & APAC</div>
+                        <div class="kpi-subtext">Regional distribution facilities</div>
                     </div>
                 </div>
 
@@ -1750,7 +1795,7 @@
                             <tbody>
                                 @forelse($inventory as $invItem)
                                 <tr>
-                                    <td style="font-weight: 700; color: var(--accent-cyan);">{{ $invItem->product->sku ?? 'N/A' }}</td>
+                                    <td style="font-weight: 700; color: var(--accent-cyan); font-family: monospace;">{{ $invItem->product->sku ?? 'N/A' }}</td>
                                     <td style="font-weight: 600; color: white;">{{ $invItem->product->name ?? 'N/A' }}</td>
                                     <td>
                                         <span class="badge badge-info">{{ $invItem->warehouse->name ?? 'Warehouse' }}</span>
@@ -1791,7 +1836,153 @@
                 </div>
             </div>
 
-            <!-- TAB 8: COMMISSION TRACKER -->
+            <!-- TAB 8: GST INVOICES & BILLING -->
+            <div id="tab-invoices" class="tab-pane">
+                <!-- Invoice KPI Summary -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-top">
+                            <span class="kpi-label">Total Invoiced</span>
+                            <div class="kpi-icon-box" style="background: rgba(6, 182, 212, 0.15); color: #22d3ee;">
+                                <i data-lucide="file-check"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($invoices->sum('total'), 2) }}</div>
+                        <div class="kpi-subtext">{{ $invoices->count() }} total billed GST invoices</div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-top">
+                            <span class="kpi-label">Collected Payments</span>
+                            <div class="kpi-icon-box" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
+                                <i data-lucide="check-circle-2"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($invoices->sum('amount_paid'), 2) }}</div>
+                        <div class="kpi-subtext" style="color: #34d399;">{{ $invoices->where('status', 'paid')->count() }} fully paid invoices</div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-top">
+                            <span class="kpi-label">Outstanding Receivables</span>
+                            <div class="kpi-icon-box" style="background: rgba(244, 63, 94, 0.15); color: #fb7185;">
+                                <i data-lucide="alert-triangle"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($invoices->sum('balance_due'), 2) }}</div>
+                        <div class="kpi-subtext">Receivables pending collection</div>
+                    </div>
+
+                    <div class="kpi-card">
+                        <div class="kpi-top">
+                            <span class="kpi-label">Overdue Invoices</span>
+                            <div class="kpi-icon-box" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">
+                                <i data-lucide="clock"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">{{ $invoices->where('status', 'overdue')->count() }}</div>
+                        <div class="kpi-subtext">Past credit term due dates</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+                        <div class="card-title">
+                            <i data-lucide="receipt" style="color: var(--accent-cyan);"></i>
+                            GST Tax Invoices & Payment Settlement
+                        </div>
+                        <button class="btn btn-primary" onclick="openModal('createInvoiceModal')">
+                            <i data-lucide="plus"></i> Generate GST Tax Invoice
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table id="table-invoices">
+                            <thead>
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Customer Account</th>
+                                    <th>Place of Supply</th>
+                                    <th>GST Type</th>
+                                    <th>Status</th>
+                                    <th>Due Date</th>
+                                    <th>Taxable Value</th>
+                                    <th>GST Total</th>
+                                    <th>Grand Total</th>
+                                    <th>Balance Due</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($invoices as $inv)
+                                <tr>
+                                    <td style="font-weight: 700; color: white; font-family: monospace;">{{ $inv->invoice_number }}</td>
+                                    <td>
+                                        <div style="font-weight: 700; color: white;">{{ $inv->customer->company_name ?? 'N/A' }}</div>
+                                        <div style="font-size: 11px; color: #94a3b8;">
+                                            @if($inv->customer && $inv->customer->gst_number)
+                                                GSTIN: <code style="color: var(--accent-cyan);">{{ $inv->customer->gst_number }}</code>
+                                            @else
+                                                <span style="color: #64748b;">Unregistered Recipient</span>
+                                            @endif
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-info">{{ $inv->place_of_supply ?: ($inv->customer->address_state ?? 'Maharashtra') }}</span>
+                                    </td>
+                                    <td>
+                                        @if($inv->gst_type === 'inter_state')
+                                            <span class="badge badge-purple">IGST (Inter-State)</span>
+                                        @else
+                                            <span class="badge badge-success">CGST+SGST (Intra-State)</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <span class="badge {{ $inv->status === 'paid' ? 'badge-success' : ($inv->status === 'partial' ? 'badge-warning' : ($inv->status === 'overdue' ? 'badge-danger' : 'badge-info')) }}">
+                                            {{ ucfirst($inv->status) }}
+                                        </span>
+                                    </td>
+                                    <td>{{ $inv->due_date ? $inv->due_date->format('d/m/Y') : 'N/A' }}</td>
+                                    <td style="font-weight: 600;">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($inv->subtotal - $inv->discount_total, 2) }}</td>
+                                    <td style="color: #fbbf24; font-weight: 600;">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($inv->tax_total, 2) }}</td>
+                                    <td style="font-weight: 700; color: #ffffff;">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($inv->total, 2) }}</td>
+                                    <td style="color: {{ $inv->balance_due > 0 ? '#fb7185' : '#34d399' }}; font-weight: 700;">
+                                        {{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($inv->balance_due, 2) }}
+                                    </td>
+                                    <td>
+                                        <div style="display: flex; gap: 6px;">
+                                            @if($inv->balance_due > 0)
+                                            <button class="btn btn-sm btn-success" onclick="openPaymentModal({{ $inv->id }}, '{{ $inv->invoice_number }}', {{ $inv->balance_due }})" title="Record Payment">
+                                                <i data-lucide="credit-card" style="width: 14px; height: 14px;"></i> Pay
+                                            </button>
+                                            @endif
+                                            <button class="btn btn-sm btn-secondary" onclick="viewInvoicePdf({{ $inv->id }}, '{{ $inv->invoice_number }}')" title="View Indian GST Tax Invoice">
+                                                <i data-lucide="printer" style="width: 14px; height: 14px;"></i> Tax Invoice
+                                            </button>
+                                            @if($inv->status === 'draft')
+                                            <button class="btn btn-sm btn-secondary" onclick="sendInvoice({{ $inv->id }})" title="Send Invoice">
+                                                <i data-lucide="send" style="width: 14px; height: 14px;"></i> Send
+                                            </button>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="11" style="text-align: center; padding: 36px; color: #64748b;">
+                                        <i data-lucide="receipt" style="width: 28px; height: 28px; margin-bottom: 8px; opacity: 0.5;"></i>
+                                        <div style="font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">No Invoices Billed</div>
+                                        <div>Click <strong>Generate GST Tax Invoice</strong> or bill confirmed sales orders.</div>
+                                    </td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 9: COMMISSION TRACKER -->
             <div id="tab-commissions" class="tab-pane">
                 <div class="card">
                     <div class="card-header">
@@ -1823,10 +2014,10 @@
                                 <tr>
                                     <td style="font-weight: 700; color: white;">{{ $comm->user->name ?? 'Rep' }}</td>
                                     <td><span class="badge badge-info">{{ $comm->period }} ({{ $comm->period_type }})</span></td>
-                                    <td style="font-weight: 700; color: #ffffff;">${{ number_format($comm->total_sales, 2) }}</td>
+                                    <td style="font-weight: 700; color: #ffffff;">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($comm->total_sales, 2) }}</td>
                                     <td>{{ $comm->commission_rate }}%</td>
-                                    <td style="font-weight: 700; color: #34d399;">${{ number_format($comm->commission_amount, 2) }}</td>
-                                    <td style="color: #fbbf24; font-weight: 600;">+${{ number_format($comm->bonus_amount, 2) }}</td>
+                                    <td style="font-weight: 700; color: #34d399;">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($comm->commission_amount, 2) }}</td>
+                                    <td style="color: #fbbf24; font-weight: 600;">+{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($comm->bonus_amount, 2) }}</td>
                                     <td>
                                         <span class="badge {{ $comm->status === 'paid' ? 'badge-success' : ($comm->status === 'approved' ? 'badge-purple' : 'badge-warning') }}">
                                             {{ ucfirst($comm->status) }}
@@ -1857,16 +2048,16 @@
                 </div>
             </div>
 
-            <!-- TAB 9: CUSTOMER ACCOUNTS -->
+            <!-- TAB 10: CUSTOMER ACCOUNTS & LEDGER -->
             <div id="tab-customers" class="tab-pane">
                 <div class="card">
-                    <div class="card-header">
+                    <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
                         <div class="card-title">
                             <i data-lucide="building-2" style="color: var(--primary);"></i>
-                            Enterprise & SME Accounts
+                            Customer Accounts & GSTIN Directory
                         </div>
                         <button class="btn btn-primary" onclick="openModal('createCustomerModal')">
-                            <i data-lucide="plus"></i> Add New Account
+                            <i data-lucide="plus"></i> Add New Customer
                         </button>
                     </div>
 
@@ -1874,13 +2065,15 @@
                         <table id="table-customers">
                             <thead>
                                 <tr>
-                                    <th>Company Account</th>
-                                    <th>GST / Tax ID</th>
+                                    <th>Company & Trade Name</th>
+                                    <th>GSTIN & PAN</th>
+                                    <th>State & Code</th>
                                     <th>Tier / Type</th>
-                                    <th>Key Contacts</th>
+                                    <th>Primary Contact</th>
                                     <th>Credit Limit</th>
-                                    <th>Payment Terms</th>
-                                    <th>Assigned Rep</th>
+                                    <th>Terms</th>
+                                    <th>Outstanding Balance</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1888,34 +2081,71 @@
                                 <tr>
                                     <td>
                                         <div style="font-weight: 700; color: white;">{{ $c->company_name }}</div>
-                                        <div style="font-size: 11px; color: #94a3b8;">{{ $c->industry }} • {{ $c->address_city ?? 'City' }}, {{ $c->address_country ?? 'USA' }}</div>
+                                        <div style="font-size: 11px; color: #94a3b8;">
+                                            {{ $c->trade_name ? "({$c->trade_name})" : '' }} {{ $c->industry }} • {{ $c->address_city ?? 'City' }}
+                                        </div>
                                     </td>
-                                    <td><code style="color: var(--accent-cyan); font-size: 11px;">{{ $c->gst_number ?: ($c->pan_number ?: 'N/A') }}</code></td>
+                                    <td>
+                                        @if($c->gst_number)
+                                            <div><code style="color: var(--accent-cyan); font-size: 12px; font-weight: 600;">{{ $c->gst_number }}</code></div>
+                                        @endif
+                                        @if($c->pan_number)
+                                            <div style="font-size: 11px; color: #94a3b8;">PAN: {{ $c->pan_number }}</div>
+                                        @else
+                                            <span style="color: #64748b; font-size: 11px;">Unregistered</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($c->state_code)
+                                            <span class="badge badge-info">{{ $c->state_code }} - {{ $c->address_state ?: 'State' }}</span>
+                                        @else
+                                            <span class="badge badge-neutral">{{ $c->address_state ?: 'India' }}</span>
+                                        @endif
+                                    </td>
                                     <td><span class="badge badge-purple">{{ ucfirst(str_replace('_', ' ', $c->type)) }}</span></td>
                                     <td>
-                                        @foreach($c->contacts as $contact)
-                                        <div style="font-size: 12px; color: #e2e8f0;">
-                                            <strong>{{ $contact->first_name }} {{ $contact->last_name }}</strong> ({{ $contact->designation }})
-                                        </div>
-                                        @endforeach
+                                        @if($c->contacts->count() > 0)
+                                            @php $primary = $c->contacts->first(); @endphp
+                                            <div style="font-size: 12px; color: #e2e8f0; font-weight: 600;">{{ $primary->first_name }} {{ $primary->last_name }}</div>
+                                            <div style="font-size: 11px; color: #94a3b8;">{{ $primary->phone ?: $primary->email }} ({{ $primary->designation ?: 'Contact' }})</div>
+                                        @else
+                                            <span style="color: #64748b; font-size: 12px;">No Contact</span>
+                                        @endif
                                     </td>
-                                    <td style="font-weight: 600;">${{ number_format($c->credit_limit, 2) }}</td>
+                                    <td style="font-weight: 600;">{{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($c->credit_limit, 2) }}</td>
                                     <td><span class="badge badge-neutral">{{ strtoupper(str_replace('_', ' ', $c->payment_terms)) }}</span></td>
-                                    <td>{{ $c->assignedUser->name ?? 'Rep' }}</td>
+                                    <td>
+                                        @php $bal = (float)$c->invoices->sum('balance_due'); @endphp
+                                        <span style="font-weight: 700; color: {{ $bal > 0 ? '#fb7185' : '#34d399' }};">
+                                            {{ $settings['currency_symbol'] ?? '₹' }}{{ number_format($bal, 2) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div style="display: flex; gap: 6px;">
+                                            <button class="btn btn-sm btn-secondary" onclick="viewCustomerLedger({{ $c->id }})" title="View Ledger & Statement">
+                                                <i data-lucide="book-open" style="width: 13px; height: 13px; color: var(--accent-cyan);"></i> Ledger
+                                            </button>
+                                            <button class="btn btn-sm btn-secondary" onclick="openEditCustomerModal({{ $c->id }})" title="Edit Customer">
+                                                <i data-lucide="edit-2" style="width: 13px; height: 13px;"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick="deleteCustomer({{ $c->id }}, '{{ addslashes($c->company_name) }}')" title="Delete Customer">
+                                                <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="7" style="text-align: center; padding: 36px; color: #64748b;">
+                                    <td colspan="9" style="text-align: center; padding: 36px; color: #64748b;">
                                         <i data-lucide="building-2" style="width: 28px; height: 28px; margin-bottom: 8px; opacity: 0.5;"></i>
                                         <div style="font-weight: 600; color: #cbd5e1; margin-bottom: 4px;">No Customer Accounts Registered</div>
-                                        <div>Click <strong>Add New Account</strong> above to onboard enterprise accounts.</div>
+                                        <div>Click <strong>Add New Customer</strong> to onboard enterprise buyers with GSTIN and state mapping.</div>
                                     </td>
                                 </tr>
                                 @endforelse
                             </tbody>
                         </table>
                     </div>
-                </div>
             </div>
 
             <!-- TAB 10: REPORTS & ANALYTICS -->
@@ -2037,7 +2267,7 @@
                             <button type="button" class="btn btn-secondary" onclick="resetSettingsToDefault()" style="color: #fb7185; border-color: rgba(244, 63, 94, 0.3); font-size: 12px;">
                                 <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i> Reset Defaults
                             </button>
-                            <button type="button" class="btn btn-primary" onclick="document.getElementById('formGeneralSettings').requestSubmit();" id="btnSaveSettingsTop" style="font-size: 13px;">
+                            <button type="button" class="btn btn-primary" onclick="submitSettingsForm(event)" id="btnSaveSettingsTop" style="font-size: 13px;">
                                 <i data-lucide="check" style="width: 15px; height: 15px;"></i> Save Changes
                             </button>
                         </div>
@@ -2045,7 +2275,7 @@
                 </div>
 
                 <!-- Settings Container with Sub-Navigation and Forms -->
-                <form id="formGeneralSettings" onsubmit="submitSettingsForm(event)">
+                <form id="formGeneralSettings" novalidate onsubmit="submitSettingsForm(event)">
                     <div class="settings-container">
                         <!-- Left Sub-Navigation Menu -->
                         <div class="settings-nav">
@@ -2770,32 +3000,49 @@
         </div>
     </div>
 
-    <!-- MODAL 6: Create Direct Tax Invoice Modal with Dynamic Line Items -->
+    <!-- MODAL 6: Create Direct Tax Invoice Modal with Dynamic Line Items & Live GST Split -->
     <div id="createInvoiceModal" class="modal-backdrop">
-        <div class="modal-box" style="max-width: 780px;">
+        <div class="modal-box" style="max-width: 860px;">
             <div class="modal-header">
-                <div class="modal-title">Generate Direct Tax Invoice</div>
+                <div class="modal-title">
+                    <i data-lucide="receipt" style="color: var(--accent-cyan);"></i>
+                    Generate Indian GST Tax Invoice
+                </div>
                 <button onclick="closeModal('createInvoiceModal')" style="background:none; border:none; color:#94a3b8; cursor:pointer;"><i data-lucide="x"></i></button>
             </div>
             <form onsubmit="submitCreateInvoice(event)">
                 <div class="modal-body">
                     <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Customer Account</label>
-                            <select name="customer_id" id="invoice_customer_id" class="form-control" required>
+                        <div class="form-group" style="flex: 2;">
+                            <label class="form-label">Customer Account (Billed To)</label>
+                            <select name="customer_id" id="invoice_customer_id" class="form-control" onchange="handleInvoiceCustomerChange(this)" required>
+                                <option value="">-- Select Customer Account --</option>
                                 @foreach($customers as $c)
-                                <option value="{{ $c->id }}">{{ $c->company_name }}</option>
+                                <option value="{{ $c->id }}" data-state="{{ $c->state_code ?: '27' }}" data-statename="{{ $c->address_state ?: 'Maharashtra' }}" data-gstin="{{ $c->gst_number }}">
+                                    {{ $c->company_name }} @if($c->gst_number) (GSTIN: {{ $c->gst_number }}) @endif
+                                </option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Invoice Type</label>
-                            <select name="type" class="form-control">
-                                <option value="sales">Standard Tax Sales Invoice</option>
-                                <option value="proforma">Proforma Invoice</option>
-                                <option value="credit_note">Credit Note</option>
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">Place of Supply (State)</label>
+                            <select name="state_code" id="invoice_place_of_supply" class="form-control" onchange="recalculateInvoiceGstSummary()" required>
+                                @foreach($indianStates as $st)
+                                <option value="{{ $st['code'] }}" {{ $st['code'] === ($settings['company_state_code'] ?? '27') ? 'selected' : '' }}>
+                                    {{ $st['code'] }} - {{ $st['name'] }}
+                                </option>
+                                @endforeach
                             </select>
                         </div>
+                    </div>
+
+                    <!-- Live GST Status Alert -->
+                    <div id="invoice_gst_type_badge" style="background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="font-size: 12px; color: #cbd5e1;">
+                            <span style="font-weight: 700; color: #34d399;" id="gst_rule_label">Intra-State GST (CGST + SGST)</span>
+                            <span style="color: #94a3b8; margin-left: 8px;" id="gst_rule_desc">Supplier & Buyer in same State ({{ $settings['company_state'] ?? 'Maharashtra' }} - {{ $settings['company_state_code'] ?? '27' }}). Tax split 50% CGST + 50% SGST.</span>
+                        </div>
+                        <span class="badge badge-success" id="gst_badge_pill">INTRA-STATE</span>
                     </div>
 
                     <div class="form-row">
@@ -2804,14 +3051,22 @@
                             <input type="date" name="invoice_date" class="form-control" value="{{ date('Y-m-d') }}" required>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Due Date</label>
+                            <label class="form-label">Payment Due Date</label>
                             <input type="date" name="due_date" class="form-control" value="{{ date('Y-m-d', strtotime('+30 days')) }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Invoice Type</label>
+                            <select name="type" class="form-control">
+                                <option value="sales">Standard GST Tax Invoice</option>
+                                <option value="proforma">Proforma Invoice</option>
+                                <option value="credit_note">GST Credit Note</option>
+                            </select>
                         </div>
                     </div>
 
                     <!-- Line Items Section -->
                     <div style="margin-top: 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-                        <h4 style="font-size: 13px; font-weight: 700; color: #ffffff;">Invoice Items</h4>
+                        <h4 style="font-size: 13px; font-weight: 700; color: #ffffff;">Itemized Goods & Services</h4>
                         <button type="button" class="btn btn-sm btn-secondary" onclick="addInvoiceItemRow()">
                             <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add Item
                         </button>
@@ -2821,131 +3076,311 @@
                         <div id="invoiceItemsContainer"></div>
                     </div>
 
-                    <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
-                        <div style="width: 260px; text-align: right; font-size: 13px;">
+                    <!-- Summary & Tax Breakup -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 16px; background: rgba(0,0,0,0.2); padding: 14px; border-radius: 10px; border: 1px solid var(--border-color);">
+                        <div style="font-size: 12px; color: #94a3b8; max-width: 400px;">
+                            <div style="font-weight: 700; color: #e2e8f0; margin-bottom: 4px;">GST Compliance Check</div>
+                            <div>Automated HSN code tracking and dual CGST/SGST vs IGST engine as per CGST Rules 2017.</div>
+                        </div>
+                        <div style="width: 320px; text-align: right; font-size: 13px;">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #94a3b8;">
-                                <span>Subtotal:</span>
-                                <strong id="inv_subtotal_preview">$0.00</strong>
+                                <span>Gross Value:</span>
+                                <strong id="inv_gross_preview">{{ $settings['currency_symbol'] ?? '₹' }}0.00</strong>
                             </div>
                             <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #94a3b8;">
-                                <span>Total Tax:</span>
-                                <strong id="inv_tax_preview">$0.00</strong>
+                                <span>Total Discount:</span>
+                                <strong id="inv_discount_preview" style="color: #fbbf24;">-{{ $settings['currency_symbol'] ?? '₹' }}0.00</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #94a3b8;">
+                                <span>Taxable Value:</span>
+                                <strong id="inv_subtotal_preview">{{ $settings['currency_symbol'] ?? '₹' }}0.00</strong>
+                            </div>
+                            <div id="inv_tax_split_box" style="margin-bottom: 4px;">
+                                <div style="display: flex; justify-content: space-between; color: #94a3b8;" id="inv_cgst_row">
+                                    <span>CGST Amount:</span>
+                                    <strong id="inv_cgst_preview">{{ $settings['currency_symbol'] ?? '₹' }}0.00</strong>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; color: #94a3b8;" id="inv_sgst_row">
+                                    <span>SGST Amount:</span>
+                                    <strong id="inv_sgst_preview">{{ $settings['currency_symbol'] ?? '₹' }}0.00</strong>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; color: #94a3b8; display: none;" id="inv_igst_row">
+                                    <span>IGST Amount:</span>
+                                    <strong id="inv_igst_preview">{{ $settings['currency_symbol'] ?? '₹' }}0.00</strong>
+                                </div>
                             </div>
                             <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--border-color); padding-top: 6px; font-size: 16px; font-weight: 800; color: #34d399;">
-                                <span>Total Payable:</span>
-                                <span id="inv_total_preview">$0.00</span>
+                                <span>Grand Total:</span>
+                                <span id="inv_total_preview">{{ $settings['currency_symbol'] ?? '₹' }}0.00</span>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('createInvoiceModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Generate Tax Invoice</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i data-lucide="check" style="width: 15px; height: 15px;"></i> Generate Tax Invoice
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL 7: Record Payment Modal -->
+    <!-- MODAL 7: Record Payment Modal (with Indian UPI, NEFT, RTGS) -->
     <div id="recordPaymentModal" class="modal-backdrop">
         <div class="modal-box">
             <div class="modal-header">
-                <div class="modal-title">Record Invoice Payment Receipt</div>
+                <div class="modal-title">
+                    <i data-lucide="credit-card" style="color: var(--accent-emerald);"></i>
+                    Record Payment Receipt
+                </div>
                 <button onclick="closeModal('recordPaymentModal')" style="background:none; border:none; color:#94a3b8; cursor:pointer;"><i data-lucide="x"></i></button>
             </div>
             <form onsubmit="submitPaymentForm(event)">
                 <input type="hidden" id="payment_invoice_id">
                 <div class="modal-body">
                     <div class="form-group">
-                        <label class="form-label">Invoice Reference</label>
+                        <label class="form-label">Invoice Number</label>
                         <input type="text" id="payment_invoice_num" class="form-control" readonly>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Payment Amount ($)</label>
+                            <label class="form-label">Receipt Amount ({{ $settings['currency_symbol'] ?? '₹' }})</label>
                             <input type="number" step="0.01" id="payment_amount" name="amount" class="form-control" required min="0.01">
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Payment Method</label>
+                            <label class="form-label">Payment Mode</label>
                             <select name="payment_method" id="payment_method" class="form-control">
-                                <option value="bank_transfer">Wire / Bank Transfer</option>
-                                <option value="credit_card">Credit Card</option>
-                                <option value="check">Company Check</option>
-                                <option value="cash">Cash</option>
-                                <option value="upi">UPI</option>
-                                <option value="other">Other</option>
+                                <option value="upi">UPI (GPay / PhonePe / Paytm / BHIM)</option>
+                                <option value="bank_transfer">NEFT / RTGS / IMPS Transfer</option>
+                                <option value="credit_card">Corporate Credit / Debit Card</option>
+                                <option value="check">Cheque / Demand Draft</option>
+                                <option value="cash">Cash Settlement</option>
+                                <option value="other">Other Channel</option>
                             </select>
                         </div>
                     </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Payment Date</label>
+                            <input type="date" name="payment_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">UTR / Transaction Reference #</label>
+                            <input type="text" name="reference_number" id="payment_ref" class="form-control" placeholder="e.g. UTR-HDFC-998231" value="UTR-{{ rand(10000000, 99999999) }}">
+                        </div>
+                    </div>
                     <div class="form-group">
-                        <label class="form-label">Transaction Reference #</label>
-                        <input type="text" name="reference_number" id="payment_ref" class="form-control" placeholder="e.g. WIRE-TXN-998231" value="WIRE-TXN-{{ rand(100000, 999999) }}">
+                        <label class="form-label">Settlement Notes</label>
+                        <input type="text" name="notes" class="form-control" placeholder="Optional settlement remark...">
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('recordPaymentModal')">Cancel</button>
-                    <button type="submit" class="btn btn-success">Record Payment</button>
+                    <button type="submit" class="btn btn-success">
+                        <i data-lucide="check-circle" style="width: 15px; height: 15px;"></i> Confirm Payment Receipt
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL 8: Add New Product / SKU Modal -->
+    <!-- MODAL 8: Add New Product / SKU Modal (with Indian GST Rates & HSN Codes) -->
     <div id="createProductModal" class="modal-backdrop">
-        <div class="modal-box">
+        <div class="modal-box" style="max-width: 680px;">
             <div class="modal-header">
-                <div class="modal-title">Add New Product / SKU to Catalog</div>
+                <div class="modal-title">
+                    <i data-lucide="package" style="color: var(--primary);"></i>
+                    Add New Product / Service to Catalog
+                </div>
                 <button onclick="closeModal('createProductModal')" style="background:none; border:none; color:#94a3b8; cursor:pointer;"><i data-lucide="x"></i></button>
             </div>
             <form onsubmit="submitCreateProduct(event)">
                 <div class="modal-body">
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">SKU Identifier</label>
+                            <label class="form-label">SKU / Item Identifier *</label>
                             <input type="text" name="sku" class="form-control" placeholder="e.g. HW-AI-CHIP8" required>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Product Name</label>
-                            <input type="text" name="name" class="form-control" placeholder="AI Tensor Accelerator Blade" required>
+                            <label class="form-label">Product / Service Name *</label>
+                            <input type="text" name="name" class="form-control" placeholder="e.g. AI Tensor Accelerator Blade" required>
                         </div>
                     </div>
+
                     <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Item Type</label>
+                            <select name="type" class="form-control" id="new_prod_type" onchange="toggleProductStockFields(this.value, 'create')">
+                                <option value="product">Physical Good (HSN Code)</option>
+                                <option value="service">Service / SLA (SAC Code)</option>
+                            </select>
+                        </div>
                         <div class="form-group">
                             <label class="form-label">Category</label>
                             <input type="text" name="category" class="form-control" placeholder="Hardware & Compute" value="Hardware">
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Type</label>
-                            <select name="type" class="form-control">
-                                <option value="product">Physical Product / Hardware</option>
-                                <option value="service">Software / Service</option>
+                            <label class="form-label">Unit of Measure</label>
+                            <select name="unit" class="form-control">
+                                <option value="Pcs">Pcs (Pieces)</option>
+                                <option value="Box">Box</option>
+                                <option value="Kg">Kg (Kilograms)</option>
+                                <option value="Meter">Meter</option>
+                                <option value="Set">Set</option>
+                                <option value="Hours">Hours (Service)</option>
+                                <option value="Year">Year (Subscription)</option>
                             </select>
                         </div>
                     </div>
+
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Unit Selling Price ($)</label>
-                            <input type="number" step="0.01" name="unit_price" class="form-control" placeholder="12000" required>
+                            <label class="form-label">HSN / SAC Code</label>
+                            <input type="text" name="hsn_code" class="form-control" placeholder="e.g. 8471, 9983" value="8471">
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Cost Price ($)</label>
+                            <label class="form-label">Indian GST Tax Rate Slab</label>
+                            <select name="tax_rate" class="form-control">
+                                <option value="18.00" selected>18% Standard GST (9% CGST + 9% SGST)</option>
+                                <option value="12.00">12% Reduced GST (6% CGST + 6% SGST)</option>
+                                <option value="5.00">5% Concessional GST (2.5% CGST + 2.5% SGST)</option>
+                                <option value="28.00">28% Luxury GST (14% CGST + 14% SGST)</option>
+                                <option value="0.00">0% Exempted GST</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Unit Selling Price ({{ $settings['currency_symbol'] ?? '₹' }}) *</label>
+                            <input type="number" step="0.01" name="unit_price" class="form-control" placeholder="12500" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Cost Price ({{ $settings['currency_symbol'] ?? '₹' }})</label>
                             <input type="number" step="0.01" name="cost_price" class="form-control" placeholder="8500" value="8500">
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Min Stock Alert Level</label>
-                            <input type="number" name="min_stock_level" class="form-control" value="5">
+
+                    <div id="create_prod_stock_section">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Initial Stock Inward (Optional)</label>
+                                <input type="number" name="initial_quantity" class="form-control" min="0" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Warehouse Depot</label>
+                                <select name="warehouse_id" class="form-control">
+                                    @foreach($warehouses as $w)
+                                    <option value="{{ $w->id }}">{{ $w->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Min Stock Alert Level</label>
+                                <input type="number" name="min_stock_level" class="form-control" value="5">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Reorder Point</label>
-                            <input type="number" name="reorder_point" class="form-control" value="10">
-                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Product Description</label>
+                        <textarea name="description" class="form-control" rows="2" placeholder="Technical specifications and details..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('createProductModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Product</button>
+                    <button type="submit" class="btn btn-primary">Save to Catalog</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 8B: Edit Product Modal -->
+    <div id="editProductModal" class="modal-backdrop">
+        <div class="modal-box" style="max-width: 680px;">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i data-lucide="edit" style="color: var(--accent-cyan);"></i>
+                    Edit Product / Service SKU
+                </div>
+                <button onclick="closeModal('editProductModal')" style="background:none; border:none; color:#94a3b8; cursor:pointer;"><i data-lucide="x"></i></button>
+            </div>
+            <form onsubmit="submitEditProduct(event)">
+                <input type="hidden" id="edit_product_id" name="id">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">SKU Identifier *</label>
+                            <input type="text" id="edit_prod_sku" name="sku" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Product / Service Name *</label>
+                            <input type="text" id="edit_prod_name" name="name" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Item Type</label>
+                            <select name="type" id="edit_prod_type" class="form-control">
+                                <option value="product">Physical Good</option>
+                                <option value="service">Service / SLA</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Category</label>
+                            <input type="text" id="edit_prod_category" name="category" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Unit of Measure</label>
+                            <input type="text" id="edit_prod_unit" name="unit" class="form-control" placeholder="Pcs">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">HSN / SAC Code</label>
+                            <input type="text" id="edit_prod_hsn" name="hsn_code" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">GST Tax Slab</label>
+                            <select name="tax_rate" id="edit_prod_tax_rate" class="form-control">
+                                <option value="18.00">18% Standard GST</option>
+                                <option value="12.00">12% Reduced GST</option>
+                                <option value="5.00">5% Concessional GST</option>
+                                <option value="28.00">28% Luxury GST</option>
+                                <option value="0.00">0% Exempted GST</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Unit Selling Price ({{ $settings['currency_symbol'] ?? '₹' }}) *</label>
+                            <input type="number" step="0.01" id="edit_prod_unit_price" name="unit_price" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Cost Price ({{ $settings['currency_symbol'] ?? '₹' }})</label>
+                            <input type="number" step="0.01" id="edit_prod_cost_price" name="cost_price" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Status</label>
+                            <select name="is_active" id="edit_prod_is_active" class="form-control">
+                                <option value="1">Active</option>
+                                <option value="0">Archived / Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Product Description</label>
+                        <textarea id="edit_prod_description" name="description" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editProductModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Product</button>
                 </div>
             </form>
         </div>
@@ -3079,48 +3514,128 @@
         </div>
     </div>
 
-    <!-- MODAL 12: Customer Account Modal -->
+    <!-- MODAL 12: Customer Account Modal (with live Indian GSTIN Auto-Fill) -->
     <div id="createCustomerModal" class="modal-backdrop">
-        <div class="modal-box">
+        <div class="modal-box" style="max-width: 780px;">
             <div class="modal-header">
-                <div class="modal-title">Add Customer Account</div>
+                <div class="modal-title">
+                    <i data-lucide="building-2" style="color: var(--primary);"></i>
+                    Onboard New Customer Account (India GST Ready)
+                </div>
                 <button onclick="closeModal('createCustomerModal')" style="background:none; border:none; color:#94a3b8; cursor:pointer;"><i data-lucide="x"></i></button>
             </div>
             <form onsubmit="submitCreateCustomer(event)">
                 <div class="modal-body">
+                    <!-- GSTIN & Auto Extraction Section -->
+                    <div style="background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.25); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+                        <div class="form-row">
+                            <div class="form-group" style="flex: 2;">
+                                <label class="form-label" style="display:flex; justify-content:space-between;">
+                                    <span>GSTIN Identification Number (15 Digits)</span>
+                                    <span id="create_gstin_status" style="font-size:11px; font-weight:600; color:#38bdf8;">Auto-detects State & PAN</span>
+                                </label>
+                                <input type="text" name="gst_number" id="create_cust_gstin" class="form-control" placeholder="e.g. 27AACCA1234F1Z5" maxlength="15" oninput="handleCustomerGstinInput(this, 'create')" style="text-transform:uppercase; font-family:monospace; font-weight:700; font-size:14px; letter-spacing:1px;">
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label class="form-label">PAN Number</label>
+                                <input type="text" name="pan_number" id="create_cust_pan" class="form-control" placeholder="e.g. AACCA1234F" maxlength="10" style="text-transform:uppercase; font-family:monospace; font-weight:700;">
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Company Name</label>
-                            <input type="text" name="company_name" class="form-control" placeholder="Acme Logistics LLC" required>
+                            <label class="form-label">Company Legal Name *</label>
+                            <input type="text" name="company_name" class="form-control" placeholder="e.g. Apex Enterprises Pvt Ltd" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Trade / Brand Name</label>
+                            <input type="text" name="trade_name" class="form-control" placeholder="e.g. Apex Tech">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Indian State & GST Code *</label>
+                            <select name="state_code" id="create_cust_state_code" class="form-control" required onchange="handleStateCodeSelectChange(this, 'create')">
+                                <option value="">-- Select Indian State --</option>
+                                @foreach($indianStates as $st)
+                                <option value="{{ $st['code'] }}" data-name="{{ $st['name'] }}">
+                                    {{ $st['code'] }} - {{ $st['name'] }}
+                                </option>
+                                @endforeach
+                            </select>
+                            <input type="hidden" name="address_state" id="create_cust_state_name">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Account Tier</label>
                             <select name="type" class="form-control">
-                                <option value="enterprise">Enterprise</option>
+                                <option value="enterprise">Enterprise (B2B)</option>
                                 <option value="mid_market">Mid-Market</option>
-                                <option value="small_business">Small Business</option>
+                                <option value="small_business">Small Business / SME</option>
                             </select>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">GST / Tax ID</label>
-                            <input type="text" name="gst_number" class="form-control" placeholder="e.g. 27AACCA1234F1Z5">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Industry</label>
-                            <input type="text" name="industry" class="form-control" placeholder="Technology & Cloud">
+                            <input type="text" name="industry" class="form-control" placeholder="Manufacturing, Tech, Retail" value="Technology & Cloud">
                         </div>
                     </div>
+
+                    <!-- Primary Contact Person -->
+                    <div style="font-weight: 700; color: #ffffff; margin-top: 10px; margin-bottom: 8px; font-size: 13px;">Key Contact Person</div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Credit Limit ($)</label>
-                            <input type="number" name="credit_limit" class="form-control" value="100000" min="0">
+                            <label class="form-label">Contact Full Name</label>
+                            <input type="text" name="contact_name" class="form-control" placeholder="e.g. Rajesh Sharma">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Designation / Role</label>
+                            <input type="text" name="contact_designation" class="form-control" placeholder="Procurement Head" value="Procurement Manager">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Contact Email</label>
+                            <input type="email" name="contact_email" class="form-control" placeholder="rajesh@example.in">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Contact Phone</label>
+                            <input type="text" name="contact_phone" class="form-control" placeholder="+91 98765 43210">
+                        </div>
+                    </div>
+
+                    <!-- Billing & Shipping Addresses -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; margin-bottom: 6px;">
+                        <span style="font-weight: 700; color: #ffffff; font-size: 13px;">Billing & Registered Address</span>
+                        <label style="font-size: 12px; color: #94a3b8; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                            <input type="checkbox" id="chk_same_shipping" onchange="syncBillingToShipping(this)" checked>
+                            <span>Shipping Address is Same as Billing</span>
+                        </label>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 2;">
+                            <label class="form-label">Billing Street Address</label>
+                            <input type="text" name="billing_street" id="create_billing_street" class="form-control" placeholder="Unit 402, Trade Center, BKC Complex">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">City</label>
+                            <input type="text" name="billing_city" id="create_billing_city" class="form-control" placeholder="Mumbai">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">PIN / Postal Code</label>
+                            <input type="text" name="billing_postal_code" id="create_billing_pin" class="form-control" placeholder="400051">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Credit Limit ({{ $settings['currency_symbol'] ?? '₹' }})</label>
+                            <input type="number" name="credit_limit" class="form-control" value="500000" min="0">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Payment Terms</label>
                             <select name="payment_terms" class="form-control">
                                 <option value="net_30">Net 30 Days</option>
+                                <option value="net_15">Net 15 Days</option>
                                 <option value="net_60">Net 60 Days</option>
                                 <option value="due_on_receipt">Due on Receipt</option>
                             </select>
@@ -3129,9 +3644,135 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('createCustomerModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Customer</button>
+                    <button type="submit" class="btn btn-primary">Save Customer Account</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- MODAL 12B: Edit Customer Account Modal -->
+    <div id="editCustomerModal" class="modal-backdrop">
+        <div class="modal-box" style="max-width: 780px;">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i data-lucide="edit" style="color: var(--accent-cyan);"></i>
+                    Edit Customer Account Profile
+                </div>
+                <button onclick="closeModal('editCustomerModal')" style="background:none; border:none; color:#94a3b8; cursor:pointer;"><i data-lucide="x"></i></button>
+            </div>
+            <form onsubmit="submitEditCustomer(event)">
+                <input type="hidden" id="edit_cust_id" name="id">
+                <div class="modal-body">
+                    <div style="background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.25); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+                        <div class="form-row">
+                            <div class="form-group" style="flex: 2;">
+                                <label class="form-label">GSTIN (15 Digits)</label>
+                                <input type="text" name="gst_number" id="edit_cust_gstin" class="form-control" maxlength="15" oninput="handleCustomerGstinInput(this, 'edit')" style="text-transform:uppercase; font-family:monospace; font-weight:700; font-size:14px; letter-spacing:1px;">
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label class="form-label">PAN Number</label>
+                                <input type="text" name="pan_number" id="edit_cust_pan" class="form-control" maxlength="10" style="text-transform:uppercase; font-family:monospace; font-weight:700;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Company Legal Name *</label>
+                            <input type="text" name="company_name" id="edit_cust_company_name" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Trade / Brand Name</label>
+                            <input type="text" name="trade_name" id="edit_cust_trade_name" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Indian State & GST Code *</label>
+                            <select name="state_code" id="edit_cust_state_code" class="form-control" required onchange="handleStateCodeSelectChange(this, 'edit')">
+                                @foreach($indianStates as $st)
+                                <option value="{{ $st['code'] }}" data-name="{{ $st['name'] }}">
+                                    {{ $st['code'] }} - {{ $st['name'] }}
+                                </option>
+                                @endforeach
+                            </select>
+                            <input type="hidden" name="address_state" id="edit_cust_state_name">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Account Tier</label>
+                            <select name="type" id="edit_cust_type" class="form-control">
+                                <option value="enterprise">Enterprise (B2B)</option>
+                                <option value="mid_market">Mid-Market</option>
+                                <option value="small_business">Small Business / SME</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Status</label>
+                            <select name="status" id="edit_cust_status" class="form-control">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="prospect">Prospect</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 2;">
+                            <label class="form-label">Billing Street Address</label>
+                            <input type="text" name="billing_street" id="edit_cust_street" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">City</label>
+                            <input type="text" name="billing_city" id="edit_cust_city" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">PIN Code</label>
+                            <input type="text" name="billing_postal_code" id="edit_cust_pin" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Credit Limit ({{ $settings['currency_symbol'] ?? '₹' }})</label>
+                            <input type="number" name="credit_limit" id="edit_cust_credit_limit" class="form-control" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Payment Terms</label>
+                            <select name="payment_terms" id="edit_cust_terms" class="form-control">
+                                <option value="net_30">Net 30 Days</option>
+                                <option value="net_15">Net 15 Days</option>
+                                <option value="net_60">Net 60 Days</option>
+                                <option value="due_on_receipt">Due on Receipt</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editCustomerModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Profile</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 12C: View Customer Ledger / 360 Statement Modal -->
+    <div id="viewCustomerLedgerModal" class="modal-backdrop">
+        <div class="modal-box" style="max-width: 860px;">
+            <div class="modal-header">
+                <div class="modal-title" id="ledger_title">
+                    <i data-lucide="book-open" style="color: var(--accent-cyan);"></i>
+                    Customer Account Ledger & Statement
+                </div>
+                <button onclick="closeModal('viewCustomerLedgerModal')" style="background:none; border:none; color:#94a3b8; cursor:pointer;"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" id="customerLedgerBody">
+                <!-- Dynamically populated -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('viewCustomerLedgerModal')">Close</button>
+                <button type="button" class="btn btn-primary" onclick="window.print()">Print Statement</button>
+            </div>
         </div>
     </div>
 
@@ -3171,17 +3812,19 @@
         </div>
     </div>
 
-    <!-- MODAL 14: Document Printable / PDF Preview Modal -->
+    <!-- MODAL 14: Document Printable / PDF Preview Modal (Indian GST Tax Invoice) -->
     <div id="pdfModal" class="modal-backdrop">
-        <div class="modal-box" style="max-width: 800px;">
-            <div class="modal-header">
+        <div class="modal-box" style="max-width: 900px;">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-color);">
                 <div class="modal-title" id="pdfModalTitle">Document Preview</div>
                 <button onclick="closeModal('pdfModal')" style="background:none; border:none; color:#94a3b8; cursor:pointer;"><i data-lucide="x"></i></button>
             </div>
-            <div class="modal-body" id="pdfContent" style="background: #ffffff; color: #1e293b; border-radius: 8px; padding: 30px;"></div>
+            <div class="modal-body" id="pdfContent" style="background: #ffffff; color: #1e293b; border-radius: 8px; padding: 24px; max-height: 75vh; overflow-y: auto;"></div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('pdfModal')">Close</button>
-                <button type="button" class="btn btn-primary" onclick="window.print()">Print Document</button>
+                <button type="button" class="btn btn-primary" onclick="window.print()">
+                    <i data-lucide="printer" style="width: 15px; height: 15px;"></i> Print / Save PDF
+                </button>
             </div>
         </div>
     </div>
@@ -3227,10 +3870,11 @@
                 'opportunities': 'Opportunity Pipeline',
                 'quotes': 'Quotes & Proposals',
                 'orders': 'Sales Orders & Fulfillment',
+                'products': 'Product & Service Catalog',
                 'inventory': 'Inventory & Warehouses',
-                'invoices': 'Invoices & Billing',
+                'invoices': 'GST Tax Invoices & Billing',
                 'commissions': 'Commission Tracker',
-                'customers': 'Customer Accounts',
+                'customers': 'Customer Accounts & Ledger',
                 'reports': 'Reporting & Analytics',
                 'settings': 'General System Settings'
             };
@@ -3554,23 +4198,105 @@
             }
         }
 
-        // 6. Dynamic Direct Invoice Item Row Builder
+        // 6. Dynamic Direct Invoice Item Row Builder & Live GST Split Engine
+        const COMPANY_STATE_CODE = '{{ $settings['company_state_code'] ?? "27" }}';
+        const CURRENCY_SYM = '{{ $settings['currency_symbol'] ?? "₹" }}';
+
+        function handleInvoiceCustomerChange(selectEl) {
+            const opt = selectEl.options[selectEl.selectedIndex];
+            if (!opt || !opt.value) return;
+            const stateCode = opt.getAttribute('data-state') || COMPANY_STATE_CODE;
+            const posSelect = document.getElementById('invoice_place_of_supply');
+            if (posSelect) {
+                posSelect.value = stateCode;
+            }
+            recalculateInvoiceGstSummary();
+        }
+
+        function recalculateInvoiceGstSummary() {
+            const posSelect = document.getElementById('invoice_place_of_supply');
+            const buyerState = posSelect ? posSelect.value : COMPANY_STATE_CODE;
+            const isIntraState = (buyerState === COMPANY_STATE_CODE);
+
+            const ruleLabel = document.getElementById('gst_rule_label');
+            const ruleDesc = document.getElementById('gst_rule_desc');
+            const badgePill = document.getElementById('gst_badge_pill');
+            const cgstRow = document.getElementById('inv_cgst_row');
+            const sgstRow = document.getElementById('inv_sgst_row');
+            const igstRow = document.getElementById('inv_igst_row');
+
+            if (isIntraState) {
+                if (ruleLabel) ruleLabel.innerText = 'Intra-State GST (CGST + SGST)';
+                if (ruleDesc) ruleDesc.innerText = `Supplier & Buyer in same State (${buyerState}). Tax split 50% CGST + 50% SGST.`;
+                if (badgePill) {
+                    badgePill.className = 'badge badge-success';
+                    badgePill.innerText = 'INTRA-STATE';
+                }
+                if (cgstRow) cgstRow.style.display = 'flex';
+                if (sgstRow) sgstRow.style.display = 'flex';
+                if (igstRow) igstRow.style.display = 'none';
+            } else {
+                if (ruleLabel) ruleLabel.innerText = 'Inter-State GST (IGST)';
+                if (ruleDesc) ruleDesc.innerText = `Place of Supply (${buyerState}) differs from Supplier State (${COMPANY_STATE_CODE}). 100% IGST applied.`;
+                if (badgePill) {
+                    badgePill.className = 'badge badge-purple';
+                    badgePill.innerText = 'INTER-STATE (IGST)';
+                }
+                if (cgstRow) cgstRow.style.display = 'none';
+                if (sgstRow) sgstRow.style.display = 'none';
+                if (igstRow) igstRow.style.display = 'flex';
+            }
+
+            recalcInvoiceTotals();
+        }
+
         function addInvoiceItemRow() {
             const container = document.getElementById('invoiceItemsContainer');
-            let productOptions = ALL_PRODUCTS.map(p => `<option value="${p.id}" data-price="${p.unit_price}">${p.sku} - ${p.name} ($${p.unit_price})</option>`).join('');
+            let productOptions = '<option value="">-- Select Product / SKU --</option>' + ALL_PRODUCTS.map(p => 
+                `<option value="${p.id}" data-price="${p.unit_price}" data-hsn="${p.hsn_code || ''}" data-tax="${p.tax_rate || 18.00}">${p.sku} - ${p.name} (${CURRENCY_SYM}${p.unit_price})</option>`
+            ).join('');
 
             const row = document.createElement('div');
             row.className = 'inv-item-row';
-            row.style = 'display: grid; grid-template-columns: 3fr 1fr 1.5fr 1fr 1fr auto; gap: 8px; margin-bottom: 8px; align-items: center;';
+            row.style = 'display: grid; grid-template-columns: 2.5fr 1.2fr 1fr 1.2fr 1fr 1.2fr auto; gap: 8px; margin-bottom: 10px; align-items: center; background: rgba(255,255,255,0.02); padding: 8px; border-radius: 6px;';
             row.innerHTML = `
-                <select class="form-control inv-item-product" onchange="onInvProductChange(this)">
-                    ${productOptions}
-                </select>
-                <input type="number" class="form-control inv-item-qty" value="1" min="1" placeholder="Qty" oninput="recalcInvoiceTotals()">
-                <input type="number" step="0.01" class="form-control inv-item-price" value="${ALL_PRODUCTS[0] ? ALL_PRODUCTS[0].unit_price : 1000}" placeholder="Price" oninput="recalcInvoiceTotals()">
-                <input type="number" step="0.5" class="form-control inv-item-disc" value="0" min="0" max="100" placeholder="Disc %" oninput="recalcInvoiceTotals()">
-                <input type="number" step="0.5" class="form-control inv-item-tax" value="10" min="0" max="50" placeholder="Tax %" oninput="recalcInvoiceTotals()">
-                <button type="button" onclick="this.parentElement.remove(); recalcInvoiceTotals();" style="background:none; border:none; color:#fb7185; cursor:pointer;"><i data-lucide="trash-2" style="width:16px; height:16px;"></i></button>
+                <div>
+                    <label style="font-size:10px; color:#64748b; text-transform:uppercase;">Product / SKU</label>
+                    <select class="form-control inv-item-product" onchange="onInvProductChange(this)">
+                        ${productOptions}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#64748b; text-transform:uppercase;">HSN / SAC</label>
+                    <input type="text" class="form-control inv-item-hsn" placeholder="HSN" value="${ALL_PRODUCTS[0] ? (ALL_PRODUCTS[0].hsn_code || '8471') : '8471'}">
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#64748b; text-transform:uppercase;">Qty</label>
+                    <input type="number" class="form-control inv-item-qty" value="1" min="1" oninput="recalcInvoiceTotals()">
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#64748b; text-transform:uppercase;">Rate (${CURRENCY_SYM})</label>
+                    <input type="number" step="0.01" class="form-control inv-item-price" value="${ALL_PRODUCTS[0] ? ALL_PRODUCTS[0].unit_price : 1000}" oninput="recalcInvoiceTotals()">
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#64748b; text-transform:uppercase;">Disc %</label>
+                    <input type="number" step="0.5" class="form-control inv-item-disc" value="0" min="0" max="100" oninput="recalcInvoiceTotals()">
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#64748b; text-transform:uppercase;">GST Slab</label>
+                    <select class="form-control inv-item-tax" onchange="recalcInvoiceTotals()">
+                        <option value="18.00">18% GST</option>
+                        <option value="12.00">12% GST</option>
+                        <option value="5.00">5% GST</option>
+                        <option value="28.00">28% GST</option>
+                        <option value="0.00">0% GST</option>
+                    </select>
+                </div>
+                <div style="padding-top: 16px;">
+                    <button type="button" onclick="this.closest('.inv-item-row').remove(); recalcInvoiceTotals();" style="background:none; border:none; color:#fb7185; cursor:pointer;" title="Remove Item">
+                        <i data-lucide="trash-2" style="width:16px; height:16px;"></i>
+                    </button>
+                </div>
             `;
 
             container.appendChild(row);
@@ -3579,63 +4305,110 @@
         }
 
         function onInvProductChange(selectEl) {
-            const selectedOpt = selectEl.options[selectEl.selectedIndex];
-            const price = selectedOpt.getAttribute('data-price');
+            const opt = selectEl.options[selectEl.selectedIndex];
+            if (!opt || !opt.value) return;
+            const price = opt.getAttribute('data-price') || 0;
+            const hsn = opt.getAttribute('data-hsn') || '';
+            const tax = opt.getAttribute('data-tax') || '18.00';
+
             const row = selectEl.closest('.inv-item-row');
-            row.querySelector('.inv-item-price').value = price || 0;
+            row.querySelector('.inv-item-price').value = price;
+            if (hsn) row.querySelector('.inv-item-hsn').value = hsn;
+            row.querySelector('.inv-item-tax').value = tax;
             recalcInvoiceTotals();
         }
 
         function recalcInvoiceTotals() {
-            let subtotal = 0;
-            let taxTotal = 0;
+            const posSelect = document.getElementById('invoice_place_of_supply');
+            const buyerState = posSelect ? posSelect.value : COMPANY_STATE_CODE;
+            const isIntraState = (buyerState === COMPANY_STATE_CODE);
+
+            let grossTotal = 0;
+            let discountTotal = 0;
+            let taxableTotal = 0;
+            let cgstTotal = 0;
+            let sgstTotal = 0;
+            let igstTotal = 0;
 
             document.querySelectorAll('.inv-item-row').forEach(row => {
                 const qty = parseFloat(row.querySelector('.inv-item-qty').value) || 0;
                 const price = parseFloat(row.querySelector('.inv-item-price').value) || 0;
                 const disc = parseFloat(row.querySelector('.inv-item-disc').value) || 0;
-                const tax = parseFloat(row.querySelector('.inv-item-tax').value) || 0;
+                const taxRate = parseFloat(row.querySelector('.inv-item-tax').value) || 0;
 
                 const base = qty * price;
-                const discounted = base - (base * (disc / 100));
-                const itemTax = discounted * (tax / 100);
+                const discAmt = base * (disc / 100);
+                const taxable = base - discAmt;
 
-                subtotal += discounted;
-                taxTotal += itemTax;
+                grossTotal += base;
+                discountTotal += discAmt;
+                taxableTotal += taxable;
+
+                if (isIntraState) {
+                    const halfRate = taxRate / 2;
+                    cgstTotal += taxable * (halfRate / 100);
+                    sgstTotal += taxable * (halfRate / 100);
+                } else {
+                    igstTotal += taxable * (taxRate / 100);
+                }
             });
 
-            const grandTotal = subtotal + taxTotal;
-            document.getElementById('inv_subtotal_preview').innerText = '$' + subtotal.toFixed(2);
-            document.getElementById('inv_tax_preview').innerText = '$' + taxTotal.toFixed(2);
-            document.getElementById('inv_total_preview').innerText = '$' + grandTotal.toFixed(2);
+            const totalTax = cgstTotal + sgstTotal + igstTotal;
+            const grandTotal = taxableTotal + totalTax;
+
+            const grossEl = document.getElementById('inv_gross_preview');
+            const discEl = document.getElementById('inv_discount_preview');
+            const subEl = document.getElementById('inv_subtotal_preview');
+            const cgstEl = document.getElementById('inv_cgst_preview');
+            const sgstEl = document.getElementById('inv_sgst_preview');
+            const igstEl = document.getElementById('inv_igst_preview');
+            const grandEl = document.getElementById('inv_total_preview');
+
+            if (grossEl) grossEl.innerText = CURRENCY_SYM + grossTotal.toFixed(2);
+            if (discEl) discEl.innerText = '-' + CURRENCY_SYM + discountTotal.toFixed(2);
+            if (subEl) subEl.innerText = CURRENCY_SYM + taxableTotal.toFixed(2);
+            if (cgstEl) cgstEl.innerText = CURRENCY_SYM + cgstTotal.toFixed(2);
+            if (sgstEl) sgstEl.innerText = CURRENCY_SYM + sgstTotal.toFixed(2);
+            if (igstEl) igstEl.innerText = CURRENCY_SYM + igstTotal.toFixed(2);
+            if (grandEl) grandEl.innerText = CURRENCY_SYM + grandTotal.toFixed(2);
         }
 
         async function submitCreateInvoice(e) {
             e.preventDefault();
             const customerId = document.getElementById('invoice_customer_id').value;
+            const stateCode = document.getElementById('invoice_place_of_supply').value;
             const invoiceDate = e.target.invoice_date.value;
             const dueDate = e.target.due_date.value;
             const invType = e.target.type.value;
 
+            if (!customerId) {
+                showToast('Please select a customer account', 'error');
+                return;
+            }
+
             const items = [];
             document.querySelectorAll('.inv-item-row').forEach(row => {
                 const pId = row.querySelector('.inv-item-product').value;
+                const hsn = row.querySelector('.inv-item-hsn').value;
                 const qty = parseFloat(row.querySelector('.inv-item-qty').value) || 1;
                 const price = parseFloat(row.querySelector('.inv-item-price').value) || 0;
                 const disc = parseFloat(row.querySelector('.inv-item-disc').value) || 0;
                 const tax = parseFloat(row.querySelector('.inv-item-tax').value) || 0;
 
-                items.push({
-                    product_id: parseInt(pId),
-                    quantity: qty,
-                    unit_price: price,
-                    discount_percent: disc,
-                    tax_rate: tax
-                });
+                if (pId) {
+                    items.push({
+                        product_id: parseInt(pId),
+                        hsn_code: hsn,
+                        quantity: qty,
+                        unit_price: price,
+                        discount_percent: disc,
+                        tax_rate: tax
+                    });
+                }
             });
 
             if (items.length === 0) {
-                alert('Please add at least one line item to the invoice');
+                alert('Please select at least one product item to bill');
                 return;
             }
 
@@ -3649,6 +4422,7 @@
                     },
                     body: JSON.stringify({
                         customer_id: parseInt(customerId),
+                        state_code: stateCode,
                         type: invType,
                         invoice_date: invoiceDate,
                         due_date: dueDate,
@@ -3658,15 +4432,16 @@
                 });
 
                 if (res.ok) {
-                    showToast('Direct Tax Invoice created successfully!');
+                    showToast('GST Tax Invoice created and registered successfully!');
                     closeModal('createInvoiceModal');
                     reloadToTab('invoices');
                 } else {
                     const err = await res.json();
-                    showToast(err.message || 'Failed to create invoice', 'error');
+                    showToast(err.message || 'Failed to generate invoice', 'error');
                 }
             } catch (err) {
                 console.error(err);
+                showToast('Error creating tax invoice', 'error');
             }
         }
 
@@ -3757,6 +4532,8 @@
             const amount = document.getElementById('payment_amount').value;
             const method = document.getElementById('payment_method').value;
             const ref = document.getElementById('payment_ref').value;
+            const pDate = e.target.payment_date ? e.target.payment_date.value : null;
+            const notes = e.target.notes ? e.target.notes.value : null;
 
             try {
                 const res = await fetch(`/api/invoices/${invId}/payment`, {
@@ -3769,12 +4546,14 @@
                     body: JSON.stringify({
                         amount: parseFloat(amount),
                         payment_method: method,
-                        reference_number: ref
+                        reference_number: ref,
+                        payment_date: pDate,
+                        notes: notes
                     })
                 });
 
                 if (res.ok) {
-                    showToast('Payment recorded and balance cleared!');
+                    showToast('Payment recorded and balance reconciled!');
                     closeModal('recordPaymentModal');
                     reloadToTab('invoices');
                 } else {
@@ -3799,7 +4578,7 @@
                 });
 
                 if (res.ok) {
-                    showToast('Invoice sent to customer!');
+                    showToast('Invoice dispatched to customer!');
                     reloadToTab('invoices');
                 }
             } catch (err) {
@@ -3807,14 +4586,35 @@
             }
         }
 
-        // 12. Create Product in Catalog
+        // 12. Product Management Functions
+        function filterProductType(type) {
+            const rows = document.querySelectorAll('#table-products tbody tr.prod-row');
+            rows.forEach(row => {
+                if (type === 'all' || row.getAttribute('data-type') === type) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        function toggleProductStockFields(type, mode) {
+            const sec = document.getElementById('create_prod_stock_section');
+            if (sec) {
+                sec.style.display = (type === 'product') ? 'block' : 'none';
+            }
+        }
+
         async function submitCreateProduct(e) {
             e.preventDefault();
             const data = Object.fromEntries(new FormData(e.target).entries());
             data.unit_price = parseFloat(data.unit_price);
             data.cost_price = data.cost_price ? parseFloat(data.cost_price) : 0;
+            data.tax_rate = data.tax_rate ? parseFloat(data.tax_rate) : 18.00;
             data.min_stock_level = parseInt(data.min_stock_level) || 0;
             data.reorder_point = parseInt(data.reorder_point) || 0;
+            if (data.initial_quantity) data.initial_quantity = parseInt(data.initial_quantity);
+            if (data.warehouse_id) data.warehouse_id = parseInt(data.warehouse_id);
 
             try {
                 const res = await fetch('/api/products', {
@@ -3828,68 +4628,386 @@
                 });
 
                 if (res.ok) {
-                    showToast('Product added to catalog!');
+                    showToast('Product successfully saved and added to Catalog!');
                     closeModal('createProductModal');
-                    reloadToTab('inventory');
+                    reloadToTab('products');
                 } else {
                     const err = await res.json();
                     showToast(err.message || 'Failed to create product', 'error');
                 }
             } catch (err) {
                 console.error(err);
+                showToast('Failed to create product', 'error');
             }
         }
 
-        // 13. Adjust Physical Stock Modal & Submit
-        function openAdjustStockModal(invId, productName, warehouseName, currentQty) {
-            document.getElementById('adjust_inventory_id').value = invId;
-            document.getElementById('adjust_product_name').innerText = productName;
-            document.getElementById('adjust_warehouse_name').innerText = warehouseName;
-            document.getElementById('adjust_new_qty').value = currentQty;
-            openModal('adjustStockModal');
+        async function openEditProductModal(productId) {
+            try {
+                const res = await fetch(`/api/products/${productId}`);
+                const p = await res.json();
+
+                document.getElementById('edit_product_id').value = p.id;
+                document.getElementById('edit_prod_sku').value = p.sku;
+                document.getElementById('edit_prod_name').value = p.name;
+                document.getElementById('edit_prod_type').value = p.type || 'product';
+                document.getElementById('edit_prod_category').value = p.category || '';
+                document.getElementById('edit_prod_unit').value = p.unit || 'Pcs';
+                document.getElementById('edit_prod_hsn').value = p.hsn_code || '';
+                document.getElementById('edit_prod_tax_rate').value = parseFloat(p.tax_rate || 18).toFixed(2);
+                document.getElementById('edit_prod_unit_price').value = p.unit_price;
+                document.getElementById('edit_prod_cost_price').value = p.cost_price || 0;
+                document.getElementById('edit_prod_is_active').value = p.is_active ? '1' : '0';
+                document.getElementById('edit_prod_description').value = p.description || '';
+
+                openModal('editProductModal');
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to load product details', 'error');
+            }
         }
 
-        async function submitAdjustStock(e) {
+        async function submitEditProduct(e) {
             e.preventDefault();
-            const invId = document.getElementById('adjust_inventory_id').value;
-            const newQty = parseInt(document.getElementById('adjust_new_qty').value);
-            const reason = e.target.reason.value;
+            const id = document.getElementById('edit_product_id').value;
+            const data = Object.fromEntries(new FormData(e.target).entries());
+            data.unit_price = parseFloat(data.unit_price);
+            data.cost_price = data.cost_price ? parseFloat(data.cost_price) : 0;
+            data.tax_rate = data.tax_rate ? parseFloat(data.tax_rate) : 18.00;
+            data.is_active = (data.is_active === '1');
 
             try {
-                const res = await fetch(`/api/inventory/${invId}`, {
+                const res = await fetch(`/api/products/${id}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({
-                        quantity: newQty,
-                        reason: reason
-                    })
+                    body: JSON.stringify(data)
                 });
 
                 if (res.ok) {
-                    showToast('Physical inventory adjusted successfully!');
-                    closeModal('adjustStockModal');
-                    reloadToTab('inventory');
+                    showToast('Product SKU updated successfully!');
+                    closeModal('editProductModal');
+                    reloadToTab('products');
                 } else {
                     const err = await res.json();
-                    showToast(err.message || 'Adjustment failed', 'error');
+                    showToast(err.message || 'Update failed', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to update product', 'error');
+            }
+        }
+
+        async function deleteProduct(productId, productName) {
+            if (!confirm(`Are you sure you want to delete product "${productName}"?`)) return;
+
+            try {
+                const res = await fetch(`/api/products/${productId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (res.ok) {
+                    showToast('Product deleted from catalog');
+                    reloadToTab('products');
+                } else {
+                    const err = await res.json();
+                    showToast(err.message || 'Delete failed', 'error');
                 }
             } catch (err) {
                 console.error(err);
             }
         }
 
-        // 14. Open Transfer Modal prefilled with product & source
-        function openTransferWithItem(productId, fromWarehouseId) {
-            document.getElementById('transfer_product_id').value = productId;
-            document.getElementById('transfer_from_wh').value = fromWarehouseId;
-            openModal('transferStockModal');
+        function openStockInWithProduct(productId) {
+            const selectEl = document.getElementById('stockin_product_id');
+            if (selectEl) selectEl.value = productId;
+            openModal('stockInModal');
         }
 
-        // 15. Stock In / Restock
+        // 13. Customer GSTIN & Account Management
+        const INDIAN_GST_STATE_MAP = {
+            "01": "Jammu & Kashmir", "02": "Himachal Pradesh", "03": "Punjab", "04": "Chandigarh",
+            "05": "Uttarakhand", "06": "Haryana", "07": "Delhi", "08": "Rajasthan",
+            "09": "Uttar Pradesh", "10": "Bihar", "11": "Sikkim", "12": "Arunachal Pradesh",
+            "13": "Nagaland", "14": "Manipur", "15": "Mizoram", "16": "Tripura",
+            "17": "Meghalaya", "18": "Assam", "19": "West Bengal", "20": "Jharkhand",
+            "21": "Odisha", "22": "Chhattisgarh", "23": "Madhya Pradesh", "24": "Gujarat",
+            "26": "Dadra & Nagar Haveli", "27": "Maharashtra", "29": "Karnataka",
+            "30": "Goa", "31": "Lakshadweep", "32": "Kerala", "33": "Tamil Nadu",
+            "34": "Puducherry", "35": "Andaman & Nicobar", "36": "Telangana",
+            "37": "Andhra Pradesh", "38": "Ladakh", "97": "Other Territory"
+        };
+
+        function handleCustomerGstinInput(inputEl, mode) {
+            inputEl.value = inputEl.value.toUpperCase().replace(/[^0-9A-Z]/g, '');
+            const gstin = inputEl.value;
+            const statusEl = document.getElementById(mode + '_gstin_status');
+            const stateSelect = document.getElementById(mode + '_cust_state_code');
+            const panInput = document.getElementById(mode + '_cust_pan');
+            const stateNameInput = document.getElementById(mode + '_cust_state_name');
+
+            if (gstin.length >= 2) {
+                const stateCode = gstin.substring(0, 2);
+                if (INDIAN_GST_STATE_MAP[stateCode]) {
+                    if (stateSelect) stateSelect.value = stateCode;
+                    if (stateNameInput) stateNameInput.value = INDIAN_GST_STATE_MAP[stateCode];
+                }
+            }
+
+            if (gstin.length >= 12) {
+                const pan = gstin.substring(2, 12);
+                if (panInput) panInput.value = pan;
+            }
+
+            const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+            if (gstin.length === 15) {
+                if (gstinRegex.test(gstin)) {
+                    if (statusEl) {
+                        const stName = INDIAN_GST_STATE_MAP[gstin.substring(0,2)] || 'India';
+                        statusEl.style.color = '#34d399';
+                        statusEl.innerText = `✓ Valid Indian GSTIN (${stName})`;
+                    }
+                } else {
+                    if (statusEl) {
+                        statusEl.style.color = '#fb7185';
+                        statusEl.innerText = `✗ Invalid GSTIN Format`;
+                    }
+                }
+            } else if (statusEl) {
+                statusEl.style.color = '#38bdf8';
+                statusEl.innerText = `Auto-detects State & PAN (${15 - gstin.length} chars)`;
+            }
+        }
+
+        function handleStateCodeSelectChange(selectEl, mode) {
+            const opt = selectEl.options[selectEl.selectedIndex];
+            const stName = opt ? opt.getAttribute('data-name') : '';
+            const nameInput = document.getElementById(mode + '_cust_state_name');
+            if (nameInput) nameInput.value = stName || '';
+        }
+
+        function syncBillingToShipping(checkbox) {
+            // Checked by default
+        }
+
+        async function submitCreateCustomer(e) {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(e.target).entries());
+            if (data.credit_limit) data.credit_limit = parseFloat(data.credit_limit);
+
+            try {
+                const res = await fetch('/api/customers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (res.ok) {
+                    showToast('Customer account registered with Indian GST & Contact!');
+                    closeModal('createCustomerModal');
+                    reloadToTab('customers');
+                } else {
+                    const err = await res.json();
+                    showToast(err.message || 'Failed to save customer', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to save customer', 'error');
+            }
+        }
+
+        async function openEditCustomerModal(customerId) {
+            try {
+                const res = await fetch(`/api/customers/${customerId}`);
+                const c = await res.json();
+
+                document.getElementById('edit_cust_id').value = c.id;
+                document.getElementById('edit_cust_company_name').value = c.company_name;
+                document.getElementById('edit_cust_trade_name').value = c.trade_name || '';
+                document.getElementById('edit_cust_gstin').value = c.gst_number || '';
+                document.getElementById('edit_cust_pan').value = c.pan_number || '';
+                document.getElementById('edit_cust_state_code').value = c.state_code || '27';
+                document.getElementById('edit_cust_state_name').value = c.address_state || 'Maharashtra';
+                document.getElementById('edit_cust_type').value = c.type || 'enterprise';
+                document.getElementById('edit_cust_status').value = c.status || 'active';
+                document.getElementById('edit_cust_street').value = c.billing_street || c.address_street || '';
+                document.getElementById('edit_cust_city').value = c.billing_city || c.address_city || '';
+                document.getElementById('edit_cust_pin').value = c.billing_postal_code || c.address_postal_code || '';
+                document.getElementById('edit_cust_credit_limit').value = c.credit_limit || 0;
+                document.getElementById('edit_cust_terms').value = c.payment_terms || 'net_30';
+
+                openModal('editCustomerModal');
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to load customer profile', 'error');
+            }
+        }
+
+        async function submitEditCustomer(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit_cust_id').value;
+            const data = Object.fromEntries(new FormData(e.target).entries());
+            if (data.credit_limit) data.credit_limit = parseFloat(data.credit_limit);
+
+            try {
+                const res = await fetch(`/api/customers/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (res.ok) {
+                    showToast('Customer profile updated!');
+                    closeModal('editCustomerModal');
+                    reloadToTab('customers');
+                } else {
+                    const err = await res.json();
+                    showToast(err.message || 'Update failed', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Update failed', 'error');
+            }
+        }
+
+        async function deleteCustomer(customerId, customerName) {
+            if (!confirm(`Are you sure you want to remove customer "${customerName}"?`)) return;
+
+            try {
+                const res = await fetch(`/api/customers/${customerId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (res.ok) {
+                    showToast('Customer account removed');
+                    reloadToTab('customers');
+                } else {
+                    const err = await res.json();
+                    showToast(err.message || 'Delete failed', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function viewCustomerLedger(customerId) {
+            try {
+                const res = await fetch(`/api/customers/${customerId}`);
+                const c = await res.json();
+                const l = c.ledger_summary || { total_invoiced: 0, total_paid: 0, balance_due: 0, credit_available: 0 };
+
+                document.getElementById('ledger_title').innerHTML = `<i data-lucide="book-open" style="color: var(--accent-cyan);"></i> Statement of Account — ${c.company_name}`;
+                
+                let invoicesRows = (c.invoices || []).map(inv => `
+                    <tr>
+                        <td style="font-weight:700; color:white; font-family:monospace;">${inv.invoice_number}</td>
+                        <td>${inv.invoice_date || 'N/A'}</td>
+                        <td><span class="badge ${inv.status === 'paid' ? 'badge-success' : (inv.status === 'partial' ? 'badge-warning' : 'badge-danger')}">${inv.status.toUpperCase()}</span></td>
+                        <td style="font-weight:600;">${CURRENCY_SYM}${parseFloat(inv.total).toFixed(2)}</td>
+                        <td style="color:#34d399; font-weight:600;">${CURRENCY_SYM}${parseFloat(inv.amount_paid).toFixed(2)}</td>
+                        <td style="color:${inv.balance_due > 0 ? '#fb7185' : '#34d399'}; font-weight:700;">${CURRENCY_SYM}${parseFloat(inv.balance_due).toFixed(2)}</td>
+                        <td>
+                            <button class="btn btn-sm btn-secondary" onclick="viewInvoicePdf(${inv.id}, '${inv.invoice_number}')">
+                                <i data-lucide="printer" style="width:12px; height:12px;"></i> View PDF
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+
+                if (!invoicesRows) {
+                    invoicesRows = `<tr><td colspan="7" style="text-align:center; padding:20px; color:#64748b;">No billing history found for this account.</td></tr>`;
+                }
+
+                const html = `
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius:10px; padding:16px; margin-bottom:16px;">
+                        <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+                            <div>
+                                <h3 style="font-size:18px; font-weight:800; color:white;">${c.company_name}</h3>
+                                <div style="font-size:12px; color:#94a3b8; margin-top:2px;">
+                                    ${c.trade_name ? 'Trade Name: ' + c.trade_name + ' • ' : ''} ${c.industry || 'Enterprise Client'}
+                                </div>
+                                <div style="font-size:12px; color:#cbd5e1; margin-top:4px;">
+                                    <strong>GSTIN:</strong> <code style="color:var(--accent-cyan); font-weight:700;">${c.gst_number || 'Unregistered'}</code> | 
+                                    <strong>State:</strong> ${c.state_code || '27'} - ${c.address_state || 'Maharashtra'}
+                                </div>
+                            </div>
+                            <div style="text-align:right;">
+                                <span class="badge badge-purple" style="font-size:12px; text-transform:uppercase;">${c.type || 'Enterprise'}</span>
+                                <div style="font-size:12px; color:#94a3b8; margin-top:4px;">Credit Terms: <strong>${(c.payment_terms || 'NET 30').toUpperCase()}</strong></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-bottom:18px;">
+                        <div style="background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.25); border-radius:8px; padding:12px; text-align:center;">
+                            <div style="font-size:11px; color:#94a3b8; text-transform:uppercase;">Total Billed</div>
+                            <div style="font-size:16px; font-weight:800; color:#22d3ee; margin-top:2px;">${CURRENCY_SYM}${l.total_invoiced.toLocaleString('en-IN', {minimumFractionDigits:2})}</div>
+                        </div>
+                        <div style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:8px; padding:12px; text-align:center;">
+                            <div style="font-size:11px; color:#94a3b8; text-transform:uppercase;">Total Collected</div>
+                            <div style="font-size:16px; font-weight:800; color:#34d399; margin-top:2px;">${CURRENCY_SYM}${l.total_paid.toLocaleString('en-IN', {minimumFractionDigits:2})}</div>
+                        </div>
+                        <div style="background:rgba(244,63,94,0.1); border:1px solid rgba(244,63,94,0.25); border-radius:8px; padding:12px; text-align:center;">
+                            <div style="font-size:11px; color:#94a3b8; text-transform:uppercase;">Outstanding Dues</div>
+                            <div style="font-size:16px; font-weight:800; color:#fb7185; margin-top:2px;">${CURRENCY_SYM}${l.balance_due.toLocaleString('en-IN', {minimumFractionDigits:2})}</div>
+                        </div>
+                        <div style="background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.25); border-radius:8px; padding:12px; text-align:center;">
+                            <div style="font-size:11px; color:#94a3b8; text-transform:uppercase;">Available Credit</div>
+                            <div style="font-size:16px; font-weight:800; color:#818cf8; margin-top:2px;">${CURRENCY_SYM}${l.credit_available.toLocaleString('en-IN', {minimumFractionDigits:2})}</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:10px;">
+                        <h4 style="font-size:13px; font-weight:700; color:white; margin-bottom:8px;">Billed Tax Invoices & Transaction History</h4>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Invoice #</th>
+                                        <th>Invoice Date</th>
+                                        <th>Status</th>
+                                        <th>Gross Amount</th>
+                                        <th>Paid Amount</th>
+                                        <th>Balance Due</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${invoicesRows}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('customerLedgerBody').innerHTML = html;
+                openModal('viewCustomerLedgerModal');
+                lucide.createIcons();
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to load customer statement', 'error');
+            }
+        }
+
+        // 14. Stock In / Restock
         async function submitStockIn(e) {
             e.preventDefault();
             const data = Object.fromEntries(new FormData(e.target).entries());
@@ -3923,7 +5041,7 @@
             }
         }
 
-        // 16. Inter-Warehouse Transfer
+        // 15. Inter-Warehouse Transfer
         async function submitStockTransfer(e) {
             e.preventDefault();
             const data = Object.fromEntries(new FormData(e.target).entries());
@@ -3963,36 +5081,7 @@
             }
         }
 
-        // 17. Create Customer Account
-        async function submitCreateCustomer(e) {
-            e.preventDefault();
-            const data = Object.fromEntries(new FormData(e.target).entries());
-
-            try {
-                const res = await fetch('/api/customers', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                if (res.ok) {
-                    showToast('Customer account added!');
-                    closeModal('createCustomerModal');
-                    reloadToTab('customers');
-                } else {
-                    const err = await res.json();
-                    showToast(err.message || 'Failed to save customer', 'error');
-                }
-            } catch (err) {
-                console.error(err);
-            }
-        }
-
-        // 18. Commission Calculations & Actions
+        // 16. Commission Calculations & Actions
         async function submitCalculateCommission(e) {
             e.preventDefault();
             const data = Object.fromEntries(new FormData(e.target).entries());
@@ -4061,7 +5150,7 @@
             }
         }
 
-        // 19. Document Printable / PDF Format Previews
+        // 17. Document Printable / PDF Format Previews (Made for India GST Compliance)
         async function viewQuotePdf(quoteId, quoteNum) {
             try {
                 const res = await fetch(`/api/quotes/${quoteId}/pdf`);
@@ -4069,9 +5158,9 @@
                 const q = data.quote;
                 const c = data.company;
 
-                document.getElementById('pdfModalTitle').innerText = 'Quote ' + quoteNum;
+                document.getElementById('pdfModalTitle').innerText = 'Quotation ' + quoteNum;
                 let html = `
-                    <div style="display:flex; justify-content:space-between; border-bottom:2px solid #6366f1; padding-bottom:15px; margin-bottom:20px;">
+                    <div style="display:flex; justify-content:space-between; border-bottom:2px solid #6366f1; padding-bottom:15px; margin-bottom:20px; color:#1e293b;">
                         <div>
                             <h2 style="font-size:22px; font-weight:800; color:#1e293b;">${c.name}</h2>
                             <p style="font-size:12px; color:#64748b;">${c.address}</p>
@@ -4083,12 +5172,12 @@
                             <p style="font-size:12px; color:#64748b;">Date: ${new Date(q.created_at).toLocaleDateString()}</p>
                         </div>
                     </div>
-                    <div style="margin-bottom:20px;">
+                    <div style="margin-bottom:20px; color:#1e293b;">
                         <h4 style="font-size:12px; text-transform:uppercase; color:#64748b;">Prepared For:</h4>
                         <p style="font-size:15px; font-weight:700; color:#1e293b;">${q.customer ? q.customer.company_name : 'Customer'}</p>
                         <p style="font-size:13px; color:#64748b;">Attn: ${q.contact ? q.contact.first_name + ' ' + q.contact.last_name : 'Procurement Team'}</p>
                     </div>
-                    <table style="width:100%; border-collapse:collapse; margin-bottom:20px; font-size:13px;">
+                    <table style="width:100%; border-collapse:collapse; margin-bottom:20px; font-size:13px; color:#1e293b;">
                         <thead>
                             <tr style="background:#f8fafc; border-bottom:1px solid #cbd5e1; text-align:left;">
                                 <th style="padding:10px; color:#475569;">Description</th>
@@ -4105,8 +5194,8 @@
                         <tr style="border-bottom:1px solid #f1f5f9;">
                             <td style="padding:10px; color:#1e293b; font-weight:600;">${it.description || (it.product ? it.product.name : 'Product')}</td>
                             <td style="padding:10px; color:#475569;">${it.quantity}</td>
-                            <td style="padding:10px; color:#475569;">$${parseFloat(it.unit_price).toFixed(2)}</td>
-                            <td style="padding:10px; color:#1e293b; font-weight:700;">$${parseFloat(it.total).toFixed(2)}</td>
+                            <td style="padding:10px; color:#475569;">${CURRENCY_SYM}${parseFloat(it.unit_price).toFixed(2)}</td>
+                            <td style="padding:10px; color:#1e293b; font-weight:700;">${CURRENCY_SYM}${parseFloat(it.total).toFixed(2)}</td>
                         </tr>
                     `;
                 });
@@ -4114,11 +5203,11 @@
                 html += `
                         </tbody>
                     </table>
-                    <div style="display:flex; justify-content:flex-end;">
+                    <div style="display:flex; justify-content:flex-end; color:#1e293b;">
                         <div style="width:250px; text-align:right;">
-                            <p style="font-size:13px; color:#64748b; margin-bottom:4px;">Subtotal: <strong>$${parseFloat(q.subtotal).toFixed(2)}</strong></p>
-                            <p style="font-size:13px; color:#64748b; margin-bottom:4px;">Tax: <strong>$${parseFloat(q.tax_total).toFixed(2)}</strong></p>
-                            <h3 style="font-size:18px; font-weight:800; color:#1e293b; border-top:1px solid #cbd5e1; padding-top:6px;">Total: $${parseFloat(q.total).toFixed(2)}</h3>
+                            <p style="font-size:13px; color:#64748b; margin-bottom:4px;">Subtotal: <strong>${CURRENCY_SYM}${parseFloat(q.subtotal).toFixed(2)}</strong></p>
+                            <p style="font-size:13px; color:#64748b; margin-bottom:4px;">Estimated Tax: <strong>${CURRENCY_SYM}${parseFloat(q.tax_total).toFixed(2)}</strong></p>
+                            <h3 style="font-size:18px; font-weight:800; color:#1e293b; border-top:1px solid #cbd5e1; padding-top:6px;">Total: ${CURRENCY_SYM}${parseFloat(q.total).toFixed(2)}</h3>
                         </div>
                     </div>
                 `;
@@ -4136,61 +5225,224 @@
                 const data = await res.json();
                 const inv = data.invoice;
                 const c = data.company;
+                const b = data.buyer;
+                const hsnSummary = data.hsn_summary || [];
+                const words = data.amount_in_words || '';
+                const sym = c.currency_symbol || CURRENCY_SYM;
 
-                document.getElementById('pdfModalTitle').innerText = 'Invoice ' + invoiceNum;
-                let html = `
-                    <div style="display:flex; justify-content:space-between; border-bottom:2px solid #10b981; padding-bottom:15px; margin-bottom:20px;">
-                        <div>
-                            <h2 style="font-size:22px; font-weight:800; color:#1e293b;">${c.name}</h2>
-                            <p style="font-size:12px; color:#64748b;">${c.address}</p>
-                            <p style="font-size:12px; color:#64748b;">Tax Registration: ${c.gst_vat}</p>
-                        </div>
-                        <div style="text-align:right;">
-                            <h1 style="font-size:24px; font-weight:800; color:#10b981;">TAX INVOICE</h1>
-                            <p style="font-size:13px; font-weight:700;">#${inv.invoice_number}</p>
-                            <p style="font-size:12px; color:#64748b;">Date: ${inv.invoice_date}</p>
-                            <p style="font-size:12px; color:#ef4444; font-weight:600;">Due Date: ${inv.due_date}</p>
-                        </div>
-                    </div>
-                    <div style="margin-bottom:20px;">
-                        <h4 style="font-size:12px; text-transform:uppercase; color:#64748b;">Billed To:</h4>
-                        <p style="font-size:15px; font-weight:700; color:#1e293b;">${inv.customer ? inv.customer.company_name : 'Customer'}</p>
-                        <p style="font-size:13px; color:#64748b;">GST/Tax ID: ${inv.customer && inv.customer.gst_number ? inv.customer.gst_number : 'N/A'}</p>
-                    </div>
-                    <table style="width:100%; border-collapse:collapse; margin-bottom:20px; font-size:13px;">
-                        <thead>
-                            <tr style="background:#f8fafc; border-bottom:1px solid #cbd5e1; text-align:left;">
-                                <th style="padding:10px; color:#475569;">Description</th>
-                                <th style="padding:10px; color:#475569;">Qty</th>
-                                <th style="padding:10px; color:#475569;">Unit Price</th>
-                                <th style="padding:10px; color:#475569;">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                `;
+                const isIntra = (inv.gst_type === 'intra_state' || b.is_intra_state);
 
-                (inv.items || []).forEach(it => {
-                    html += `
-                        <tr style="border-bottom:1px solid #f1f5f9;">
-                            <td style="padding:10px; color:#1e293b; font-weight:600;">${it.description || (it.product ? it.product.name : 'Product')}</td>
-                            <td style="padding:10px; color:#475569;">${it.quantity}</td>
-                            <td style="padding:10px; color:#475569;">$${parseFloat(it.unit_price).toFixed(2)}</td>
-                            <td style="padding:10px; color:#1e293b; font-weight:700;">$${parseFloat(it.total).toFixed(2)}</td>
+                document.getElementById('pdfModalTitle').innerText = 'Indian GST Tax Invoice — ' + invoiceNum;
+                
+                let itemRowsHtml = (inv.items || []).map((it, idx) => {
+                    const hsn = it.hsn_code || (it.product ? it.product.hsn_code : 'N/A');
+                    const desc = it.description || (it.product ? it.product.name : 'Goods / Service');
+                    const taxable = parseFloat(it.taxable_value || (it.quantity * it.unit_price)).toFixed(2);
+                    const rate = parseFloat(it.tax_rate || 18);
+                    
+                    let taxSplitHtml = '';
+                    if (isIntra) {
+                        const halfRate = rate / 2;
+                        const cgstAmt = (it.cgst_amount !== undefined && it.cgst_amount !== null) ? parseFloat(it.cgst_amount).toFixed(2) : (taxable * (halfRate/100)).toFixed(2);
+                        const sgstAmt = (it.sgst_amount !== undefined && it.sgst_amount !== null) ? parseFloat(it.sgst_amount).toFixed(2) : (taxable * (halfRate/100)).toFixed(2);
+                        taxSplitHtml = `
+                            <td style="padding:8px 6px; text-align:right; font-size:11px;">${halfRate}% (${cgstAmt})</td>
+                            <td style="padding:8px 6px; text-align:right; font-size:11px;">${halfRate}% (${sgstAmt})</td>
+                        `;
+                    } else {
+                        const igstAmt = (it.igst_amount !== undefined && it.igst_amount !== null) ? parseFloat(it.igst_amount).toFixed(2) : (taxable * (rate/100)).toFixed(2);
+                        taxSplitHtml = `
+                            <td style="padding:8px 6px; text-align:right; font-size:11px;" colspan="2">${rate}% (${igstAmt})</td>
+                        `;
+                    }
+
+                    return `
+                        <tr style="border-bottom:1px solid #e2e8f0; font-size:12px;">
+                            <td style="padding:8px 6px; text-align:center; color:#64748b;">${idx + 1}</td>
+                            <td style="padding:8px 6px; font-weight:600; color:#0f172a;">${desc}</td>
+                            <td style="padding:8px 6px; text-align:center; font-family:monospace; font-weight:600; color:#334155;">${hsn}</td>
+                            <td style="padding:8px 6px; text-align:center;">${it.quantity} ${it.product ? (it.product.unit || 'units') : 'units'}</td>
+                            <td style="padding:8px 6px; text-align:right;">${sym}${parseFloat(it.unit_price).toFixed(2)}</td>
+                            <td style="padding:8px 6px; text-align:right;">${it.discount_percent || 0}%</td>
+                            <td style="padding:8px 6px; text-align:right; font-weight:700;">${sym}${taxable}</td>
+                            ${taxSplitHtml}
+                            <td style="padding:8px 6px; text-align:right; font-weight:800; color:#0f172a;">${sym}${parseFloat(it.total).toFixed(2)}</td>
                         </tr>
                     `;
-                });
+                }).join('');
 
-                html += `
-                        </tbody>
-                    </table>
-                    <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                        <div>
-                            <span class="badge ${inv.status === 'paid' ? 'badge-success' : 'badge-warning'}" style="font-size:13px; padding:6px 14px;">Status: ${inv.status.toUpperCase()}</span>
+                let hsnSummaryRows = hsnSummary.map(h => `
+                    <tr style="border-bottom:1px solid #f1f5f9; font-size:11px;">
+                        <td style="padding:6px; font-family:monospace; font-weight:700;">${h.hsn_code}</td>
+                        <td style="padding:6px; text-align:right;">${sym}${parseFloat(h.taxable_value).toFixed(2)}</td>
+                        <td style="padding:6px; text-align:right;">${h.cgst_rate}% (${sym}${parseFloat(h.cgst_amount).toFixed(2)})</td>
+                        <td style="padding:6px; text-align:right;">${h.sgst_rate}% (${sym}${parseFloat(h.sgst_amount).toFixed(2)})</td>
+                        <td style="padding:6px; text-align:right;">${h.igst_rate}% (${sym}${parseFloat(h.igst_amount).toFixed(2)})</td>
+                        <td style="padding:6px; text-align:right; font-weight:700;">${sym}${parseFloat(h.total_tax).toFixed(2)}</td>
+                    </tr>
+                `).join('');
+
+                const html = `
+                    <div style="font-family:'Plus Jakarta Sans', Arial, sans-serif; color:#0f172a; line-height:1.4;">
+                        <!-- Header Bar -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #0284c7; padding-bottom:12px; margin-bottom:14px;">
+                            <div>
+                                <h1 style="font-size:22px; font-weight:900; color:#0369a1; letter-spacing:0.5px; margin:0;">${c.name}</h1>
+                                <p style="font-size:11px; color:#64748b; margin:2px 0;">${c.tagline}</p>
+                                <p style="font-size:11px; color:#475569; margin:2px 0;">${c.address}, ${c.city}, ${c.state} - ${c.postal_code}, ${c.country}</p>
+                                <p style="font-size:11px; color:#475569; margin:2px 0;">
+                                    <strong>GSTIN:</strong> <span style="font-family:monospace; font-weight:800; color:#0284c7;">${c.gstin}</span> | 
+                                    <strong>PAN:</strong> <span style="font-family:monospace; font-weight:700;">${c.pan}</span> | 
+                                    <strong>State Code:</strong> ${c.state_code}
+                                </p>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="display:inline-block; background:#0284c7; color:white; padding:4px 12px; font-weight:800; font-size:14px; border-radius:4px; margin-bottom:4px;">
+                                    TAX INVOICE
+                                </div>
+                                <div style="font-size:10px; color:#64748b; text-transform:uppercase; font-weight:700;">Original for Recipient</div>
+                                <div style="font-size:14px; font-weight:800; color:#0f172a; margin-top:2px;">#${inv.invoice_number}</div>
+                                <div style="font-size:11px; color:#475569;">Date: <strong>${inv.invoice_date}</strong></div>
+                                <div style="font-size:11px; color:#dc2626;">Due Date: <strong>${inv.due_date}</strong></div>
+                            </div>
                         </div>
-                        <div style="width:250px; text-align:right;">
-                            <p style="font-size:13px; color:#64748b; margin-bottom:4px;">Total Invoice: <strong>$${parseFloat(inv.total).toFixed(2)}</strong></p>
-                            <p style="font-size:13px; color:#10b981; margin-bottom:4px;">Amount Paid: <strong>$${parseFloat(inv.amount_paid).toFixed(2)}</strong></p>
-                            <h3 style="font-size:18px; font-weight:800; color:#ef4444; border-top:1px solid #cbd5e1; padding-top:6px;">Balance Due: $${parseFloat(inv.balance_due).toFixed(2)}</h3>
+
+                        <!-- 2-Column Buyer & Transaction Grid -->
+                        <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:14px; margin-bottom:14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:12px;">
+                            <div>
+                                <div style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Details of Receiver (Billed To):</div>
+                                <div style="font-size:14px; font-weight:800; color:#0f172a;">${inv.customer ? inv.customer.company_name : 'Customer Account'}</div>
+                                <div style="font-size:11px; color:#475569; margin-top:2px;">${inv.customer ? (inv.customer.billing_street || inv.customer.address_street || 'Registered Office Address') : ''}</div>
+                                <div style="font-size:11px; color:#475569;">${inv.customer ? (inv.customer.billing_city || inv.customer.address_city || '') : ''}, ${b.state}</div>
+                                <div style="font-size:11px; color:#0f172a; margin-top:4px;">
+                                    <strong>GSTIN / UIN:</strong> <span style="font-family:monospace; font-weight:800; color:#0369a1;">${inv.customer && inv.customer.gst_number ? inv.customer.gst_number : 'Unregistered Recipient'}</span>
+                                </div>
+                                <div style="font-size:11px; color:#475569;">
+                                    <strong>PAN:</strong> ${inv.customer && inv.customer.pan_number ? inv.customer.pan_number : 'N/A'} | 
+                                    <strong>State Code:</strong> ${b.state_code}
+                                </div>
+                            </div>
+                            <div style="border-left:1px solid #e2e8f0; padding-left:14px;">
+                                <div style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Supply & Logistics Meta:</div>
+                                <div style="font-size:11px; color:#475569; margin-bottom:3px;">
+                                    <strong>Place of Supply:</strong> <span style="font-weight:700; color:#0f172a;">${b.state} (${b.state_code})</span>
+                                </div>
+                                <div style="font-size:11px; color:#475569; margin-bottom:3px;">
+                                    <strong>Tax Type:</strong> <span style="font-weight:700; color:${isIntra ? '#16a34a' : '#9333ea'};">${isIntra ? 'Intra-State (CGST + SGST)' : 'Inter-State (IGST)'}</span>
+                                </div>
+                                <div style="font-size:11px; color:#475569; margin-bottom:3px;">
+                                    <strong>Reverse Charge:</strong> ${inv.is_reverse_charge ? 'Yes' : 'No'}
+                                </div>
+                                <div style="font-size:11px; color:#475569;">
+                                    <strong>Payment Status:</strong> <span style="font-weight:800; color:${inv.status === 'paid' ? '#16a34a' : '#d97706'}; text-transform:uppercase;">${inv.status}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Itemized Products Table -->
+                        <table style="width:100%; border-collapse:collapse; margin-bottom:14px; border:1px solid #cbd5e1;">
+                            <thead>
+                                <tr style="background:#0f172a; color:#ffffff; font-size:11px; text-transform:uppercase;">
+                                    <th style="padding:8px 6px; width:30px;">#</th>
+                                    <th style="padding:8px 6px; text-align:left;">Description of Goods / Services</th>
+                                    <th style="padding:8px 6px; width:70px; text-align:center;">HSN/SAC</th>
+                                    <th style="padding:8px 6px; width:65px; text-align:center;">Qty</th>
+                                    <th style="padding:8px 6px; width:75px; text-align:right;">Rate</th>
+                                    <th style="padding:8px 6px; width:45px; text-align:right;">Disc</th>
+                                    <th style="padding:8px 6px; width:85px; text-align:right;">Taxable (${sym})</th>
+                                    ${isIntra ? '<th style="padding:8px 6px; width:80px; text-align:right;">CGST</th><th style="padding:8px 6px; width:80px; text-align:right;">SGST</th>' : '<th style="padding:8px 6px; width:100px; text-align:right;" colspan="2">IGST</th>'}
+                                    <th style="padding:8px 6px; width:90px; text-align:right;">Total (${sym})</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${itemRowsHtml}
+                            </tbody>
+                        </table>
+
+                        <!-- Tax Breakdown & Grand Summary -->
+                        <div style="display:grid; grid-template-columns: 1.3fr 1fr; gap:14px; margin-bottom:14px;">
+                            <div>
+                                <!-- HSN Summary -->
+                                <div style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:4px;">HSN / SAC Tax Breakdown Summary:</div>
+                                <table style="width:100%; border-collapse:collapse; font-size:11px; border:1px solid #e2e8f0; background:#f8fafc;">
+                                    <thead>
+                                        <tr style="background:#f1f5f9; border-bottom:1px solid #cbd5e1; font-size:10px;">
+                                            <th style="padding:4px; text-align:left;">HSN</th>
+                                            <th style="padding:4px; text-align:right;">Taxable</th>
+                                            <th style="padding:4px; text-align:right;">CGST</th>
+                                            <th style="padding:4px; text-align:right;">SGST</th>
+                                            <th style="padding:4px; text-align:right;">IGST</th>
+                                            <th style="padding:4px; text-align:right;">Total Tax</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${hsnSummaryRows}
+                                    </tbody>
+                                </table>
+
+                                <!-- Amount in Words -->
+                                <div style="margin-top:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:4px; padding:8px;">
+                                    <div style="font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase;">Invoice Amount Chargeable (in Words):</div>
+                                    <div style="font-size:12px; font-weight:700; color:#0369a1; margin-top:2px;">${words}</div>
+                                </div>
+                            </div>
+
+                            <!-- Totals Box -->
+                            <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:12px; font-size:12px;">
+                                <div style="display:flex; justify-content:space-between; margin-bottom:4px; color:#475569;">
+                                    <span>Taxable Value:</span>
+                                    <strong>${sym}${parseFloat(inv.subtotal - (inv.discount_total || 0)).toFixed(2)}</strong>
+                                </div>
+                                ${isIntra ? `
+                                <div style="display:flex; justify-content:space-between; margin-bottom:4px; color:#475569;">
+                                    <span>Total CGST:</span>
+                                    <strong>${sym}${parseFloat(inv.cgst_total || (inv.tax_total / 2)).toFixed(2)}</strong>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; margin-bottom:4px; color:#475569;">
+                                    <span>Total SGST:</span>
+                                    <strong>${sym}${parseFloat(inv.sgst_total || (inv.tax_total / 2)).toFixed(2)}</strong>
+                                </div>
+                                ` : `
+                                <div style="display:flex; justify-content:space-between; margin-bottom:4px; color:#475569;">
+                                    <span>Total IGST:</span>
+                                    <strong>${sym}${parseFloat(inv.igst_total || inv.tax_total).toFixed(2)}</strong>
+                                </div>
+                                `}
+                                <div style="display:flex; justify-content:space-between; border-top:2px solid #0f172a; padding-top:6px; margin-top:6px; font-size:16px; font-weight:900; color:#0f172a;">
+                                    <span>Invoice Total:</span>
+                                    <span>${sym}${parseFloat(inv.total).toFixed(2)}</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:12px; color:#16a34a;">
+                                    <span>Amount Paid:</span>
+                                    <strong>${sym}${parseFloat(inv.amount_paid || 0).toFixed(2)}</strong>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; margin-top:2px; font-size:13px; font-weight:800; color:${inv.balance_due > 0 ? '#dc2626' : '#16a34a'};">
+                                    <span>Balance Due:</span>
+                                    <span>${sym}${parseFloat(inv.balance_due || 0).toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bank Transfer & UPI Electronic Settlement Box -->
+                        <div style="display:grid; grid-template-columns: 1.3fr 1fr; gap:14px; margin-bottom:14px; border:1px solid #cbd5e1; border-radius:6px; padding:10px; background:#f8fafc;">
+                            <div style="font-size:11px; color:#334155;">
+                                <div style="font-weight:800; color:#0f172a; text-transform:uppercase; font-size:10px; margin-bottom:4px;">Electronic Bank Settlement & UPI:</div>
+                                <div><strong>Bank Name:</strong> ${c.bank_name}</div>
+                                <div><strong>A/C No:</strong> <span style="font-family:monospace; font-weight:800;">${c.bank_account_no}</span> | <strong>IFSC:</strong> <span style="font-family:monospace; font-weight:800; color:#0284c7;">${c.bank_ifsc}</span></div>
+                                <div><strong>Branch:</strong> ${c.bank_branch}</div>
+                                <div style="margin-top:3px;"><strong>UPI VPA ID:</strong> <code style="color:#0369a1; font-weight:800;">${c.upi_id}</code></div>
+                            </div>
+                            <div style="text-align:right; display:flex; flex-direction:column; justify-content:space-between;">
+                                <div style="font-size:10px; color:#64748b; text-transform:uppercase;">For ${c.name}</div>
+                                <div style="font-size:11px; font-weight:800; color:#0f172a; border-top:1px solid #cbd5e1; padding-top:4px; margin-top:24px;">
+                                    Authorized Signatory
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Terms of Sale -->
+                        <div style="font-size:10px; color:#64748b; border-top:1px dashed #cbd5e1; padding-top:6px;">
+                            <strong>Terms & Conditions:</strong> 1. Payment due within specified credit terms. 2. Interest @ 18% p.a. chargeable on overdue settlements. 3. Subject to ${c.city} Jurisdiction.
                         </div>
                     </div>
                 `;
@@ -4199,6 +5451,7 @@
                 openModal('pdfModal');
             } catch (err) {
                 console.error(err);
+                showToast('Failed to load tax invoice preview', 'error');
             }
         }
 
@@ -4212,13 +5465,21 @@
 
             const activeBtn = document.getElementById('btn-subnav-' + subId);
             if (activeBtn) activeBtn.classList.add('active');
+
+            if (window.lucide) lucide.createIcons();
         }
 
         async function submitSettingsForm(e) {
-            e.preventDefault();
+            if (e && e.preventDefault) e.preventDefault();
             const form = document.getElementById('formGeneralSettings');
-            const data = {};
+            if (!form) return;
 
+            const btnSaveTop = document.getElementById('btnSaveSettingsTop');
+            const btnSaveBottom = document.getElementById('btnSaveSettingsBottom');
+            const origTop = btnSaveTop ? btnSaveTop.innerHTML : '';
+            const origBottom = btnSaveBottom ? btnSaveBottom.innerHTML : '';
+
+            const data = {};
             const inputs = form.querySelectorAll('input, select, textarea');
             inputs.forEach(input => {
                 if (!input.name) return;
@@ -4229,21 +5490,36 @@
                 }
             });
 
-            const btnSaveTop = document.getElementById('btnSaveSettingsTop');
-            const btnSaveBottom = document.getElementById('btnSaveSettingsBottom');
-            const origTop = btnSaveTop ? btnSaveTop.innerHTML : '';
-            const origBottom = btnSaveBottom ? btnSaveBottom.innerHTML : '';
+            // Client-side friendly validation
+            if (!data.company_name || !data.company_name.trim()) {
+                switchSettingsSubSection('company');
+                showToast('Company Legal Name is required', 'error');
+                const el = document.getElementById('set_company_name');
+                if (el) el.focus();
+                return;
+            }
+
+            if (!data.company_email || !data.company_email.trim()) {
+                switchSettingsSubSection('company');
+                showToast('Company Email Address is required', 'error');
+                const el = document.getElementById('set_company_email');
+                if (el) el.focus();
+                return;
+            }
 
             if (btnSaveTop) btnSaveTop.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Saving...';
             if (btnSaveBottom) btnSaveBottom.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Saving...';
+            if (window.lucide) lucide.createIcons();
 
             try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
                 const res = await fetch('/api/settings', {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        'X-CSRF-TOKEN': csrfToken
                     },
                     body: JSON.stringify(data)
                 });
@@ -4256,15 +5532,15 @@
                         if (brandTitle) brandTitle.innerText = data.company_name;
                     }
                 } else {
-                    showToast(json.message || 'Failed to save settings', 'error');
+                    showToast(json.message || 'Failed to save settings. Please verify inputs.', 'error');
                 }
             } catch (err) {
-                console.error(err);
+                console.error('Settings save error:', err);
                 showToast('An error occurred while saving settings', 'error');
             } finally {
                 if (btnSaveTop) btnSaveTop.innerHTML = origTop;
                 if (btnSaveBottom) btnSaveBottom.innerHTML = origBottom;
-                lucide.createIcons();
+                if (window.lucide) lucide.createIcons();
             }
         }
 
@@ -4274,11 +5550,13 @@
             }
 
             try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
                 const res = await fetch('/api/settings/reset', {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
                         'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        'X-CSRF-TOKEN': csrfToken
                     }
                 });
 
@@ -4299,13 +5577,16 @@
             const btn = document.getElementById('btnClearCache');
             const orig = btn ? btn.innerHTML : '';
             if (btn) btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Purging...';
+            if (window.lucide) lucide.createIcons();
 
             try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
                 const res = await fetch('/api/settings/cache-clear', {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
                         'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        'X-CSRF-TOKEN': csrfToken
                     }
                 });
 
@@ -4320,9 +5601,14 @@
                 showToast('System cache flushed', 'success');
             } finally {
                 if (btn) btn.innerHTML = orig;
-                lucide.createIcons();
+                if (window.lucide) lucide.createIcons();
             }
         }
+
+        window.switchSettingsSubSection = switchSettingsSubSection;
+        window.submitSettingsForm = submitSettingsForm;
+        window.resetSettingsToDefault = resetSettingsToDefault;
+        window.clearSystemCache = clearSystemCache;
 
         // 21. Chart.js Graphs Initialization & Tab Restoration
         document.addEventListener('DOMContentLoaded', () => {

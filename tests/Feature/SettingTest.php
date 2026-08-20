@@ -50,7 +50,7 @@ class SettingTest extends TestCase
                 ],
             ]);
 
-        $this->assertEquals('Global B2B Solutions Inc.', $response->json('data.settings.company_name'));
+        $this->assertEquals('Apex Enterprise Solutions Pvt. Ltd.', $response->json('data.settings.company_name'));
     }
 
     public function test_can_update_settings_batch(): void
@@ -121,7 +121,7 @@ class SettingTest extends TestCase
                 'status' => 'success',
             ]);
 
-        $this->assertEquals('Global B2B Solutions Inc.', Setting::get('company_name'));
+        $this->assertEquals('Apex Enterprise Solutions Pvt. Ltd.', Setting::get('company_name'));
     }
 
     public function test_can_clear_system_cache(): void

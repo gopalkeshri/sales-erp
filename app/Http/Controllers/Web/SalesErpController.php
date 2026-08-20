@@ -48,18 +48,19 @@ class SalesErpController extends Controller
 
         $leads = Lead::with(['customer', 'assignedUser'])->orderBy('created_at', 'desc')->get();
         $opportunities = Opportunity::with(['customer', 'assignedUser', 'opportunityProducts.product'])->orderBy('created_at', 'desc')->get();
-        $customers = Customer::with(['contacts', 'assignedUser', 'territory'])->orderBy('company_name')->get();
+        $customers = Customer::with(['contacts', 'assignedUser', 'territory', 'invoices.payments'])->orderBy('company_name')->get();
         $quotes = Quote::with(['customer', 'assignedUser', 'items.product'])->orderBy('created_at', 'desc')->get();
         $orders = Order::with(['customer', 'assignedUser', 'items.product', 'invoices'])->orderBy('created_at', 'desc')->get();
-        $invoices = Invoice::with(['customer', 'assignedUser', 'items.product', 'payments'])->orderBy('created_at', 'desc')->get();
+        $invoices = Invoice::with(['customer.contacts', 'assignedUser', 'items.product', 'payments'])->orderBy('created_at', 'desc')->get();
         $inventory = Inventory::with(['product', 'warehouse'])->get();
-        $products = Product::where('is_active', true)->get();
+        $products = Product::with('inventories.warehouse')->orderBy('name')->get();
         $warehouses = Warehouse::where('is_active', true)->get();
         $commissions = Commission::with(['user', 'adjustments'])->orderBy('period', 'desc')->get();
         $territories = Territory::with(['manager', 'parent'])->get();
         $users = User::where('is_active', true)->get();
         $activities = Activity::with('performer')->orderBy('created_at', 'desc')->limit(15)->get();
         $settings = Setting::getAllKeyValue();
+        $indianStates = \App\Services\GstService::getIndianStates();
         $systemInfo = [
             'php_version' => PHP_VERSION,
             'laravel_version' => app()->version(),
@@ -91,6 +92,7 @@ class SalesErpController extends Controller
             'users',
             'activities',
             'settings',
+            'indianStates',
             'systemInfo'
         ));
     }

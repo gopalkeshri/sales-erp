@@ -55,10 +55,37 @@ class ProductController extends Controller
             'reorder_point' => 'nullable|integer|min:0',
             'image' => 'nullable|string|max:255',
             'attributes' => 'nullable|array',
+            'initial_quantity' => 'nullable|integer|min:0',
+            'warehouse_id' => 'nullable|exists:warehouses,id',
         ]);
 
+        $initialQty = (int)($validated['initial_quantity'] ?? 0);
+        $warehouseId = $validated['warehouse_id'] ?? null;
+        unset($validated['initial_quantity'], $validated['warehouse_id']);
+
         $product = Product::create($validated);
-        return response()->json($product, 201);
+
+        if ($product->type === 'product' && $initialQty > 0 && $warehouseId) {
+            $inventory = \App\Models\Inventory::firstOrCreate(
+                ['product_id' => $product->id, 'warehouse_id' => $warehouseId],
+                ['quantity' => 0, 'reserved_quantity' => 0]
+            );
+            $inventory->increment('quantity', $initialQty);
+            $inventory->update(['last_restocked_at' => now()]);
+
+            \App\Models\InventoryTransaction::create([
+                'product_id' => $product->id,
+                'warehouse_id' => $warehouseId,
+                'type' => 'in',
+                'quantity' => $initialQty,
+                'reference_type' => 'initial_inward',
+                'reference_id' => $product->id,
+                'notes' => "Initial inward stock cataloging for {$product->sku}",
+                'performed_by' => $request->user() ? $request->user()->id : null,
+            ]);
+        }
+
+        return response()->json($product->load('inventories.warehouse'), 201);
     }
 
     public function show(int $id): JsonResponse
