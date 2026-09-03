@@ -84,15 +84,39 @@ class InvoiceController extends Controller
     {
         $invoice = Invoice::findOrFail($id);
         $validated = $request->validate([
+            'customer_id' => 'nullable|exists:customers,id',
+            'contact_id' => 'nullable|exists:contacts,id',
+            'order_id' => 'nullable|exists:orders,id',
             'status' => 'nullable|in:draft,sent,paid,partial,overdue,cancelled',
+            'type' => 'nullable|in:sales,proforma,credit_note',
+            'invoice_date' => 'nullable|date',
             'due_date' => 'nullable|date',
+            'currency' => 'nullable|string|size:3',
             'payment_terms' => 'nullable|string|max:50',
             'notes' => 'nullable|string',
+            'place_of_supply' => 'nullable|string|max:100',
+            'state_code' => 'nullable|string|max:10',
+            'is_reverse_charge' => 'nullable|boolean',
             'assigned_to' => 'nullable|exists:users,id',
+            'territory_id' => 'nullable|exists:territories,id',
+            'items' => 'nullable|array|min:1',
+            'items.*.product_id' => 'required_with:items|exists:products,id',
+            'items.*.description' => 'nullable|string',
+            'items.*.hsn_code' => 'nullable|string|max:20',
+            'items.*.quantity' => 'required_with:items|integer|min:1',
+            'items.*.unit_price' => 'required_with:items|numeric|min:0',
+            'items.*.discount_percent' => 'nullable|numeric|min:0|max:100',
+            'items.*.tax_rate' => 'nullable|numeric|min:0|max:100',
         ]);
 
-        $invoice->update($validated);
-        return response()->json($invoice->fresh(['customer', 'contact', 'items.product', 'payments']));
+        $items = null;
+        if (isset($validated['items'])) {
+            $items = $validated['items'];
+            unset($validated['items']);
+        }
+
+        $updated = $this->invoiceService->updateInvoice($invoice, $validated, $items, $request->user());
+        return response()->json($updated);
     }
 
     public function destroy(Request $request, int $id): JsonResponse

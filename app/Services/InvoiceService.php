@@ -145,6 +145,142 @@ class InvoiceService
         });
     }
 
+    public function updateInvoice(Invoice $invoice, array $data, ?array $items = null, ?User $user = null): Invoice
+    {
+        return DB::transaction(function () use ($invoice, $data, $items, $user) {
+            $oldValues = $invoice->toArray();
+
+            $customerId = $data['customer_id'] ?? $invoice->customer_id;
+            $customer = Customer::findOrFail($customerId);
+
+            // Determine State Code of Supplier and Buyer
+            $supplierStateCode = Setting::get('company_state_code', '27');
+            $buyerStateCode = $data['state_code'] ?? (!empty($data['place_of_supply']) ? GstService::getCodeByState($data['place_of_supply']) : null) ?? $invoice->state_code ?? $customer->state_code ?? null;
+
+            if (empty($buyerStateCode) && !empty($customer->gst_number)) {
+                $gstinData = GstService::validateGstin($customer->gst_number);
+                if ($gstinData['valid']) {
+                    $buyerStateCode = $gstinData['state_code'];
+                }
+            }
+
+            if (empty($buyerStateCode) && !empty($customer->address_state)) {
+                $buyerStateCode = GstService::getCodeByState($customer->address_state);
+            }
+
+            $buyerStateCode = $buyerStateCode ?: $supplierStateCode;
+
+            $data['state_code'] = $buyerStateCode;
+            if (isset($data['place_of_supply']) || $items !== null || isset($data['customer_id'])) {
+                $data['place_of_supply'] = $data['place_of_supply'] ?? ($customer->address_state ?: GstService::getStateByCode($buyerStateCode));
+            }
+
+            $invoice->update($data);
+
+            if ($items !== null) {
+                // Delete old items and insert updated ones
+                $invoice->items()->delete();
+
+                $subtotal = 0;
+                $discountTotal = 0;
+                $taxTotal = 0;
+                $cgstTotal = 0;
+                $sgstTotal = 0;
+                $igstTotal = 0;
+                $gstType = 'intra_state';
+
+                foreach ($items as $item) {
+                    $product = !empty($item['product_id']) ? Product::find($item['product_id']) : null;
+                    $qty = (int) ($item['quantity'] ?? 1);
+                    $unitPrice = (float) ($item['unit_price'] ?? ($product ? $product->unit_price : 0));
+                    $discountPercent = (float) ($item['discount_percent'] ?? 0);
+                    $taxRate = (float) ($item['tax_rate'] ?? ($product ? $product->tax_rate : 18.00));
+                    $hsnCode = $item['hsn_code'] ?? ($product ? $product->hsn_code : null);
+
+                    $itemBase = $qty * $unitPrice;
+                    $itemDiscount = round($itemBase * ($discountPercent / 100), 2);
+                    $taxableValue = round($itemBase - $itemDiscount, 2);
+
+                    // Calculate GST Split
+                    $gstCalc = GstService::calculateGst($taxableValue, $taxRate, $supplierStateCode, $buyerStateCode);
+                    $gstType = $gstCalc['gst_type'];
+
+                    $itemTotal = round($taxableValue + $gstCalc['total_tax'], 2);
+
+                    InvoiceItem::create([
+                        'invoice_id' => $invoice->id,
+                        'product_id' => $item['product_id'],
+                        'description' => $item['description'] ?? ($product ? $product->name : null),
+                        'hsn_code' => $hsnCode,
+                        'quantity' => $qty,
+                        'unit_price' => $unitPrice,
+                        'discount_percent' => $discountPercent,
+                        'taxable_value' => $taxableValue,
+                        'tax_rate' => $taxRate,
+                        'cgst_rate' => $gstCalc['cgst_rate'],
+                        'cgst_amount' => $gstCalc['cgst_amount'],
+                        'sgst_rate' => $gstCalc['sgst_rate'],
+                        'sgst_amount' => $gstCalc['sgst_amount'],
+                        'igst_rate' => $gstCalc['igst_rate'],
+                        'igst_amount' => $gstCalc['igst_amount'],
+                        'total' => $itemTotal,
+                    ]);
+
+                    $subtotal += $itemBase;
+                    $discountTotal += $itemDiscount;
+                    $cgstTotal += $gstCalc['cgst_amount'];
+                    $sgstTotal += $gstCalc['sgst_amount'];
+                    $igstTotal += $gstCalc['igst_amount'];
+                    $taxTotal += $gstCalc['total_tax'];
+                }
+
+                $grandTotal = round(($subtotal - $discountTotal) + $taxTotal, 2);
+                $paidAmount = (float) $invoice->payments()->sum('amount');
+                $balanceDue = max(0, round($grandTotal - $paidAmount, 2));
+
+                $updatePayload = [
+                    'subtotal' => round($subtotal, 2),
+                    'discount_total' => round($discountTotal, 2),
+                    'cgst_total' => round($cgstTotal, 2),
+                    'sgst_total' => round($sgstTotal, 2),
+                    'igst_total' => round($igstTotal, 2),
+                    'tax_total' => round($taxTotal, 2),
+                    'gst_type' => $gstType,
+                    'total' => $grandTotal,
+                    'amount_paid' => $paidAmount,
+                    'balance_due' => $balanceDue,
+                ];
+
+                if (!isset($data['status'])) {
+                    if ($balanceDue <= 0 && $grandTotal > 0) {
+                        $updatePayload['status'] = 'paid';
+                    } elseif ($paidAmount > 0 && $balanceDue > 0) {
+                        $updatePayload['status'] = 'partial';
+                    }
+                }
+
+                $invoice->update($updatePayload);
+            } else {
+                $invoice->recalculatePaymentStatus();
+            }
+
+            if ($user) {
+                AuditLog::create([
+                    'user_id' => $user->id,
+                    'action' => 'update',
+                    'entity_type' => 'invoice',
+                    'entity_id' => $invoice->id,
+                    'old_values' => $oldValues,
+                    'new_values' => $invoice->fresh()->toArray(),
+                    'ip_address' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                ]);
+            }
+
+            return $invoice->fresh(['items.product', 'customer', 'contact', 'payments']);
+        });
+    }
+
     public function recordPayment(Invoice $invoice, array $paymentData, ?User $user = null): Payment
     {
         return DB::transaction(function () use ($invoice, $paymentData, $user) {

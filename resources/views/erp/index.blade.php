@@ -2148,6 +2148,9 @@
                                     </td>
                                     <td>
                                         <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                            <button class="btn btn-sm btn-secondary" onclick="openEditInvoiceModal({{ $inv->id }})" title="Edit GST Tax Invoice" style="color: var(--accent-amber);">
+                                                <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i> Edit
+                                            </button>
                                             @if($inv->balance_due > 0)
                                             <button class="btn btn-sm btn-success" onclick="openPaymentModal({{ $inv->id }}, '{{ $inv->invoice_number }}', {{ $inv->balance_due }})" title="Record Payment">
                                                 <i data-lucide="credit-card" style="width: 14px; height: 14px;"></i> Pay
@@ -3730,6 +3733,169 @@
         </div>
     </div>
 
+    <!-- MODAL 6B: Edit GST Tax Invoice Modal with Dynamic Line Items & Live GST Split -->
+    <div id="editInvoiceModal" class="modal-backdrop">
+        <div class="modal-box" style="max-width: 880px;">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i data-lucide="edit-3" style="color: var(--accent-amber);"></i>
+                    Edit Indian GST Tax Invoice — <span id="edit_inv_number_badge" class="badge badge-info" style="font-family: monospace; font-size: 13px; margin-left: 6px;">#INV-</span>
+                </div>
+                <button onclick="closeModal('editInvoiceModal')" style="background:none; border:none; color:#94a3b8; cursor:pointer;"><i data-lucide="x"></i></button>
+            </div>
+            <form onsubmit="submitEditInvoice(event)">
+                <input type="hidden" id="edit_invoice_id">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 2;">
+                            <label class="form-label">Customer Account (Billed To)</label>
+                            <select name="customer_id" id="edit_invoice_customer_id" class="form-control" onchange="handleEditInvoiceCustomerChange(this)" required>
+                                <option value="">-- Select Customer Account --</option>
+                                @foreach($customers as $c)
+                                <option value="{{ $c->id }}" data-state="{{ $c->state_code ?: '27' }}" data-statename="{{ $c->address_state ?: 'Maharashtra' }}" data-gstin="{{ $c->gst_number }}">
+                                    {{ $c->company_name }} @if($c->gst_number) (GSTIN: {{ $c->gst_number }}) @endif
+                                </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">Place of Supply (State)</label>
+                            <select name="state_code" id="edit_invoice_place_of_supply" class="form-control" onchange="recalcEditInvoiceTotals()" required>
+                                @foreach($indianStates as $st)
+                                <option value="{{ $st['code'] }}" {{ $st['code'] === ($settings['company_state_code'] ?? '27') ? 'selected' : '' }}>
+                                    {{ $st['code'] }} - {{ $st['name'] }}
+                                </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Live GST Status Alert -->
+                    <div id="edit_invoice_gst_type_badge" style="background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="font-size: 12px; color: #cbd5e1;">
+                            <span style="font-weight: 700; color: #34d399;" id="edit_gst_rule_label">Intra-State GST (CGST + SGST)</span>
+                            <span style="color: #94a3b8; margin-left: 8px;" id="edit_gst_rule_desc">Supplier & Buyer in same State ({{ $settings['company_state'] ?? 'Maharashtra' }} - {{ $settings['company_state_code'] ?? '27' }}). Tax split 50% CGST + 50% SGST.</span>
+                        </div>
+                        <span class="badge badge-success" id="edit_gst_badge_pill">INTRA-STATE</span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Invoice Date</label>
+                            <input type="date" name="invoice_date" id="edit_invoice_date" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Payment Due Date</label>
+                            <input type="date" name="due_date" id="edit_invoice_due_date" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Invoice Type</label>
+                            <select name="type" id="edit_invoice_type" class="form-control">
+                                <option value="sales">Standard GST Tax Invoice</option>
+                                <option value="proforma">Proforma Invoice</option>
+                                <option value="credit_note">GST Credit Note</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Invoice Status</label>
+                            <select name="status" id="edit_invoice_status" class="form-control">
+                                <option value="draft">Draft</option>
+                                <option value="sent">Sent</option>
+                                <option value="partial">Partial</option>
+                                <option value="paid">Paid</option>
+                                <option value="overdue">Overdue</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">Payment Terms</label>
+                            <select name="payment_terms" id="edit_invoice_payment_terms" class="form-control">
+                                <option value="due_on_receipt">Due on Receipt</option>
+                                <option value="net_15">Net 15 Days</option>
+                                <option value="net_30">Net 30 Days</option>
+                                <option value="net_45">Net 45 Days</option>
+                                <option value="net_60">Net 60 Days</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 2;">
+                            <label class="form-label">Internal Notes / Terms</label>
+                            <input type="text" name="notes" id="edit_invoice_notes" class="form-control" placeholder="Optional invoice notes or payment instructions...">
+                        </div>
+                    </div>
+
+                    <!-- Line Items Section -->
+                    <div style="margin-top: 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="font-size: 13px; font-weight: 700; color: #ffffff;">Itemized Goods & Services</h4>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="addEditInvoiceItemRow()">
+                            <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add Item
+                        </button>
+                    </div>
+
+                    <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px;">
+                        <div id="editInvoiceItemsContainer"></div>
+                    </div>
+
+                    <!-- Summary & Tax Breakup -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 16px; background: rgba(0,0,0,0.2); padding: 14px; border-radius: 10px; border: 1px solid var(--border-color);">
+                        <div style="font-size: 12px; color: #94a3b8; max-width: 400px;">
+                            <div style="font-weight: 700; color: #e2e8f0; margin-bottom: 4px;">Live Indian GST Engine</div>
+                            <div>Totals, HSN taxes, and remaining balances are automatically recalculated based on existing payments and tax slabs.</div>
+                            <div id="edit_inv_paid_info" style="margin-top: 6px; font-size: 11.5px; color: #34d399; display: none;">
+                                <i data-lucide="check-circle-2" style="width: 13px; height: 13px; display: inline-block; vertical-align: middle;"></i>
+                                Previously Collected: <strong id="edit_inv_paid_preview">{{ $settings['currency_symbol'] ?? '₹' }}0.00</strong>
+                            </div>
+                        </div>
+                        <div style="width: 330px; text-align: right; font-size: 13px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #94a3b8;">
+                                <span>Gross Value:</span>
+                                <strong id="edit_inv_gross_preview">{{ $settings['currency_symbol'] ?? '₹' }}0.00</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #94a3b8;">
+                                <span>Total Discount:</span>
+                                <strong id="edit_inv_discount_preview" style="color: #fbbf24;">-{{ $settings['currency_symbol'] ?? '₹' }}0.00</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #94a3b8;">
+                                <span>Taxable Value:</span>
+                                <strong id="edit_inv_subtotal_preview">{{ $settings['currency_symbol'] ?? '₹' }}0.00</strong>
+                            </div>
+                            <div id="edit_inv_tax_split_box" style="margin-bottom: 4px;">
+                                <div style="display: flex; justify-content: space-between; color: #94a3b8;" id="edit_inv_cgst_row">
+                                    <span>CGST Amount:</span>
+                                    <strong id="edit_inv_cgst_preview">{{ $settings['currency_symbol'] ?? '₹' }}0.00</strong>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; color: #94a3b8;" id="edit_inv_sgst_row">
+                                    <span>SGST Amount:</span>
+                                    <strong id="edit_inv_sgst_preview">{{ $settings['currency_symbol'] ?? '₹' }}0.00</strong>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; color: #94a3b8; display: none;" id="edit_inv_igst_row">
+                                    <span>IGST Amount:</span>
+                                    <strong id="edit_inv_igst_preview">{{ $settings['currency_symbol'] ?? '₹' }}0.00</strong>
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--border-color); padding-top: 6px; font-size: 15px; font-weight: 800; color: #ffffff;">
+                                <span>Grand Total:</span>
+                                <span id="edit_inv_total_preview">{{ $settings['currency_symbol'] ?? '₹' }}0.00</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; padding-top: 4px; font-size: 15px; font-weight: 800; color: #34d399;" id="edit_inv_balance_row">
+                                <span>Balance Due:</span>
+                                <span id="edit_inv_balance_preview">{{ $settings['currency_symbol'] ?? '₹' }}0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editInvoiceModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);">
+                        <i data-lucide="check" style="width: 15px; height: 15px;"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL 7: Record Payment Modal (with Indian UPI, NEFT, RTGS) -->
     <div id="recordPaymentModal" class="modal-backdrop">
         <div class="modal-box">
@@ -4545,6 +4711,9 @@
                 if (id === 'createInvoiceModal' && document.getElementById('invoiceItemsContainer').children.length === 0) {
                     addInvoiceItemRow();
                 }
+                if (id === 'editInvoiceModal' && document.getElementById('editInvoiceItemsContainer').children.length === 0) {
+                    addEditInvoiceItemRow();
+                }
             }
         }
 
@@ -5190,6 +5359,336 @@
             }
         }
 
+        // 6B. Edit Invoice Logic & Functions
+        let editInvoicePaidAmount = 0;
+
+        async function openEditInvoiceModal(invoiceId) {
+            try {
+                const res = await fetch(`/api/invoices/${invoiceId}`);
+                if (!res.ok) {
+                    showToast('Failed to fetch invoice details', 'error');
+                    return;
+                }
+                const inv = await res.json();
+
+                document.getElementById('edit_invoice_id').value = inv.id;
+                document.getElementById('edit_inv_number_badge').innerText = '#' + inv.invoice_number;
+                document.getElementById('edit_invoice_customer_id').value = inv.customer_id;
+                
+                const stateCode = inv.state_code || (inv.customer ? inv.customer.state_code : COMPANY_STATE_CODE);
+                const posSelect = document.getElementById('edit_invoice_place_of_supply');
+                if (posSelect) {
+                    posSelect.value = stateCode;
+                }
+
+                if (inv.invoice_date) {
+                    document.getElementById('edit_invoice_date').value = inv.invoice_date.split('T')[0];
+                }
+                if (inv.due_date) {
+                    document.getElementById('edit_invoice_due_date').value = inv.due_date.split('T')[0];
+                }
+                document.getElementById('edit_invoice_type').value = inv.type || 'sales';
+                document.getElementById('edit_invoice_status').value = inv.status || 'draft';
+                document.getElementById('edit_invoice_payment_terms').value = inv.payment_terms || 'net_30';
+                document.getElementById('edit_invoice_notes').value = inv.notes || '';
+
+                editInvoicePaidAmount = parseFloat(inv.amount_paid || 0);
+                const paidInfoEl = document.getElementById('edit_inv_paid_info');
+                const paidPrevEl = document.getElementById('edit_inv_paid_preview');
+                if (editInvoicePaidAmount > 0) {
+                    if (paidInfoEl) paidInfoEl.style.display = 'block';
+                    if (paidPrevEl) paidPrevEl.innerText = CURRENCY_SYM + editInvoicePaidAmount.toFixed(2);
+                } else {
+                    if (paidInfoEl) paidInfoEl.style.display = 'none';
+                }
+
+                // Render line items
+                const container = document.getElementById('editInvoiceItemsContainer');
+                container.innerHTML = '';
+
+                if (inv.items && inv.items.length > 0) {
+                    inv.items.forEach(it => {
+                        addEditInvoiceItemRow(it);
+                    });
+                } else {
+                    addEditInvoiceItemRow();
+                }
+
+                updateEditInvoiceGstStatus();
+                recalcEditInvoiceTotals();
+                openModal('editInvoiceModal');
+            } catch (err) {
+                console.error(err);
+                showToast('Error loading invoice for editing', 'error');
+            }
+        }
+
+        function handleEditInvoiceCustomerChange(selectEl) {
+            const opt = selectEl.options[selectEl.selectedIndex];
+            if (!opt || !opt.value) return;
+            const state = opt.getAttribute('data-state') || COMPANY_STATE_CODE;
+            const posSelect = document.getElementById('edit_invoice_place_of_supply');
+            if (posSelect) {
+                posSelect.value = state;
+            }
+            updateEditInvoiceGstStatus();
+            recalcEditInvoiceTotals();
+        }
+
+        function updateEditInvoiceGstStatus() {
+            const posSelect = document.getElementById('edit_invoice_place_of_supply');
+            const buyerState = posSelect ? posSelect.value : COMPANY_STATE_CODE;
+            const isIntraState = (buyerState === COMPANY_STATE_CODE);
+
+            const ruleLabel = document.getElementById('edit_gst_rule_label');
+            const ruleDesc = document.getElementById('edit_gst_rule_desc');
+            const badgePill = document.getElementById('edit_gst_badge_pill');
+            const cgstRow = document.getElementById('edit_inv_cgst_row');
+            const sgstRow = document.getElementById('edit_inv_sgst_row');
+            const igstRow = document.getElementById('edit_inv_igst_row');
+
+            if (isIntraState) {
+                if (ruleLabel) { ruleLabel.innerText = 'Intra-State GST (CGST + SGST)'; ruleLabel.style.color = '#34d399'; }
+                if (ruleDesc) ruleDesc.innerText = `Supplier & Buyer in same State (${buyerState}). Tax split 50% CGST + 50% SGST.`;
+                if (badgePill) {
+                    badgePill.className = 'badge badge-success';
+                    badgePill.innerText = 'INTRA-STATE';
+                }
+                if (cgstRow) cgstRow.style.display = 'flex';
+                if (sgstRow) sgstRow.style.display = 'flex';
+                if (igstRow) igstRow.style.display = 'none';
+            } else {
+                if (ruleLabel) { ruleLabel.innerText = 'Inter-State GST (IGST)'; ruleLabel.style.color = '#a855f7'; }
+                if (ruleDesc) ruleDesc.innerText = `Place of Supply (${buyerState}) differs from Supplier State (${COMPANY_STATE_CODE}). 100% IGST applied.`;
+                if (badgePill) {
+                    badgePill.className = 'badge badge-purple';
+                    badgePill.innerText = 'INTER-STATE (IGST)';
+                }
+                if (cgstRow) cgstRow.style.display = 'none';
+                if (sgstRow) sgstRow.style.display = 'none';
+                if (igstRow) igstRow.style.display = 'flex';
+            }
+        }
+
+        function addEditInvoiceItemRow(itemData = null) {
+            const container = document.getElementById('editInvoiceItemsContainer');
+            if (!container) return;
+
+            let productOptions = '<option value="">-- Select Product / SKU --</option>' + ALL_PRODUCTS.map(p => {
+                const isSelected = itemData && itemData.product_id == p.id ? 'selected' : '';
+                return `<option value="${p.id}" data-price="${p.unit_price}" data-hsn="${p.hsn_code || ''}" data-tax="${p.tax_rate || 18.00}" ${isSelected}>${p.sku} - ${p.name} (${CURRENCY_SYM}${p.unit_price})</option>`;
+            }).join('');
+
+            const row = document.createElement('div');
+            row.className = 'edit-inv-item-row';
+            row.style = 'display: grid; grid-template-columns: 2.5fr 1.2fr 1fr 1.2fr 1fr 1.2fr auto; gap: 8px; margin-bottom: 10px; align-items: center; background: rgba(255,255,255,0.02); padding: 8px; border-radius: 6px;';
+
+            const defaultQty = itemData ? itemData.quantity : 1;
+            const defaultPrice = itemData ? itemData.unit_price : (ALL_PRODUCTS[0] ? ALL_PRODUCTS[0].unit_price : 1000);
+            const defaultHsn = itemData ? (itemData.hsn_code || '') : (ALL_PRODUCTS[0] ? (ALL_PRODUCTS[0].hsn_code || '8471') : '8471');
+            const defaultDisc = itemData ? itemData.discount_percent : 0;
+            const defaultTax = itemData ? parseFloat(itemData.tax_rate || 18).toFixed(2) : '18.00';
+
+            row.innerHTML = `
+                <div>
+                    <label style="font-size:10px; color:#64748b; text-transform:uppercase;">Product / SKU</label>
+                    <select class="form-control edit-inv-item-product" onchange="onEditInvProductChange(this)">
+                        ${productOptions}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#64748b; text-transform:uppercase;">HSN / SAC</label>
+                    <input type="text" class="form-control edit-inv-item-hsn" placeholder="HSN" value="${defaultHsn}">
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#64748b; text-transform:uppercase;">Qty</label>
+                    <input type="number" class="form-control edit-inv-item-qty" value="${defaultQty}" min="1" oninput="recalcEditInvoiceTotals()">
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#64748b; text-transform:uppercase;">Rate (${CURRENCY_SYM})</label>
+                    <input type="number" step="0.01" class="form-control edit-inv-item-price" value="${defaultPrice}" oninput="recalcEditInvoiceTotals()">
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#64748b; text-transform:uppercase;">Disc %</label>
+                    <input type="number" step="0.5" class="form-control edit-inv-item-disc" value="${defaultDisc}" min="0" max="100" oninput="recalcEditInvoiceTotals()">
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#64748b; text-transform:uppercase;">GST Slab</label>
+                    <select class="form-control edit-inv-item-tax" onchange="recalcEditInvoiceTotals()">
+                        <option value="18.00" ${defaultTax === '18.00' ? 'selected' : ''}>18% GST</option>
+                        <option value="12.00" ${defaultTax === '12.00' ? 'selected' : ''}>12% GST</option>
+                        <option value="5.00" ${defaultTax === '5.00' ? 'selected' : ''}>5% GST</option>
+                        <option value="28.00" ${defaultTax === '28.00' ? 'selected' : ''}>28% GST</option>
+                        <option value="0.00" ${defaultTax === '0.00' ? 'selected' : ''}>0% GST</option>
+                    </select>
+                </div>
+                <div style="padding-top: 16px;">
+                    <button type="button" onclick="this.closest('.edit-inv-item-row').remove(); recalcEditInvoiceTotals();" style="background:none; border:none; color:#fb7185; cursor:pointer;" title="Remove Item">
+                        <i data-lucide="trash-2" style="width:16px; height:16px;"></i>
+                    </button>
+                </div>
+            `;
+
+            container.appendChild(row);
+            lucide.createIcons();
+            recalcEditInvoiceTotals();
+        }
+
+        function onEditInvProductChange(selectEl) {
+            const opt = selectEl.options[selectEl.selectedIndex];
+            if (!opt || !opt.value) return;
+            const price = opt.getAttribute('data-price') || 0;
+            const hsn = opt.getAttribute('data-hsn') || '';
+            const tax = opt.getAttribute('data-tax') || '18.00';
+
+            const row = selectEl.closest('.edit-inv-item-row');
+            row.querySelector('.edit-inv-item-price').value = price;
+            if (hsn) row.querySelector('.edit-inv-item-hsn').value = hsn;
+            row.querySelector('.edit-inv-item-tax').value = parseFloat(tax).toFixed(2);
+            recalcEditInvoiceTotals();
+        }
+
+        function recalcEditInvoiceTotals() {
+            updateEditInvoiceGstStatus();
+
+            const posSelect = document.getElementById('edit_invoice_place_of_supply');
+            const buyerState = posSelect ? posSelect.value : COMPANY_STATE_CODE;
+            const isIntraState = (buyerState === COMPANY_STATE_CODE);
+
+            let grossTotal = 0;
+            let discountTotal = 0;
+            let taxableTotal = 0;
+            let cgstTotal = 0;
+            let sgstTotal = 0;
+            let igstTotal = 0;
+
+            document.querySelectorAll('.edit-inv-item-row').forEach(row => {
+                const qty = parseFloat(row.querySelector('.edit-inv-item-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.edit-inv-item-price').value) || 0;
+                const disc = parseFloat(row.querySelector('.edit-inv-item-disc').value) || 0;
+                const taxRate = parseFloat(row.querySelector('.edit-inv-item-tax').value) || 0;
+
+                const base = qty * price;
+                const discAmt = base * (disc / 100);
+                const taxable = base - discAmt;
+
+                grossTotal += base;
+                discountTotal += discAmt;
+                taxableTotal += taxable;
+
+                if (isIntraState) {
+                    const halfRate = taxRate / 2;
+                    cgstTotal += taxable * (halfRate / 100);
+                    sgstTotal += taxable * (halfRate / 100);
+                } else {
+                    igstTotal += taxable * (taxRate / 100);
+                }
+            });
+
+            const totalTax = cgstTotal + sgstTotal + igstTotal;
+            const grandTotal = taxableTotal + totalTax;
+            const balanceDue = Math.max(0, grandTotal - editInvoicePaidAmount);
+
+            const grossEl = document.getElementById('edit_inv_gross_preview');
+            const discEl = document.getElementById('edit_inv_discount_preview');
+            const subEl = document.getElementById('edit_inv_subtotal_preview');
+            const cgstEl = document.getElementById('edit_inv_cgst_preview');
+            const sgstEl = document.getElementById('edit_inv_sgst_preview');
+            const igstEl = document.getElementById('edit_inv_igst_preview');
+            const grandEl = document.getElementById('edit_inv_total_preview');
+            const balanceEl = document.getElementById('edit_inv_balance_preview');
+
+            if (grossEl) grossEl.innerText = CURRENCY_SYM + grossTotal.toFixed(2);
+            if (discEl) discEl.innerText = '-' + CURRENCY_SYM + discountTotal.toFixed(2);
+            if (subEl) subEl.innerText = CURRENCY_SYM + taxableTotal.toFixed(2);
+            if (cgstEl) cgstEl.innerText = CURRENCY_SYM + cgstTotal.toFixed(2);
+            if (sgstEl) sgstEl.innerText = CURRENCY_SYM + sgstTotal.toFixed(2);
+            if (igstEl) igstEl.innerText = CURRENCY_SYM + igstTotal.toFixed(2);
+            if (grandEl) grandEl.innerText = CURRENCY_SYM + grandTotal.toFixed(2);
+            if (balanceEl) {
+                balanceEl.innerText = CURRENCY_SYM + balanceDue.toFixed(2);
+                balanceEl.style.color = balanceDue > 0 ? '#fb7185' : '#34d399';
+            }
+        }
+
+        async function submitEditInvoice(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit_invoice_id').value;
+            const customerId = document.getElementById('edit_invoice_customer_id').value;
+            const stateCode = document.getElementById('edit_invoice_place_of_supply').value;
+            const invoiceDate = document.getElementById('edit_invoice_date').value;
+            const dueDate = document.getElementById('edit_invoice_due_date').value;
+            const invType = document.getElementById('edit_invoice_type').value;
+            const status = document.getElementById('edit_invoice_status').value;
+            const paymentTerms = document.getElementById('edit_invoice_payment_terms').value;
+            const notes = document.getElementById('edit_invoice_notes').value;
+
+            if (!customerId) {
+                showToast('Please select a customer account', 'error');
+                return;
+            }
+
+            const items = [];
+            document.querySelectorAll('.edit-inv-item-row').forEach(row => {
+                const pId = row.querySelector('.edit-inv-item-product').value;
+                const hsn = row.querySelector('.edit-inv-item-hsn').value;
+                const qty = parseFloat(row.querySelector('.edit-inv-item-qty').value) || 1;
+                const price = parseFloat(row.querySelector('.edit-inv-item-price').value) || 0;
+                const disc = parseFloat(row.querySelector('.edit-inv-item-disc').value) || 0;
+                const tax = parseFloat(row.querySelector('.edit-inv-item-tax').value) || 0;
+
+                if (pId) {
+                    items.push({
+                        product_id: parseInt(pId),
+                        hsn_code: hsn,
+                        quantity: qty,
+                        unit_price: price,
+                        discount_percent: disc,
+                        tax_rate: tax
+                    });
+                }
+            });
+
+            if (items.length === 0) {
+                alert('Please select at least one product item for the invoice');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/invoices/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        customer_id: parseInt(customerId),
+                        state_code: stateCode,
+                        type: invType,
+                        status: status,
+                        payment_terms: paymentTerms,
+                        notes: notes,
+                        invoice_date: invoiceDate,
+                        due_date: dueDate,
+                        items: items
+                    })
+                });
+
+                if (res.ok) {
+                    showToast('GST Tax Invoice updated successfully!');
+                    closeModal('editInvoiceModal');
+                    reloadToTab('invoices');
+                } else {
+                    const err = await res.json();
+                    showToast(err.message || 'Failed to update invoice', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Error updating tax invoice', 'error');
+            }
+        }
+
         // 7. Convert Quote to Order
         async function convertQuoteToOrder(quoteId) {
             if (!confirm('Convert this Quote into a confirmed Sales Order?')) return;
@@ -5670,9 +6169,14 @@
                         <td style="color:#34d399; font-weight:600;">${CURRENCY_SYM}${parseFloat(inv.amount_paid).toFixed(2)}</td>
                         <td style="color:${inv.balance_due > 0 ? '#fb7185' : '#34d399'}; font-weight:700;">${CURRENCY_SYM}${parseFloat(inv.balance_due).toFixed(2)}</td>
                         <td>
-                            <button class="btn btn-sm btn-secondary" onclick="viewInvoicePdf(${inv.id}, '${inv.invoice_number}')">
-                                <i data-lucide="printer" style="width:12px; height:12px;"></i> View PDF
-                            </button>
+                            <div style="display:flex; gap:4px;">
+                                <button class="btn btn-sm btn-secondary" onclick="closeModal('customerLedgerModal'); openEditInvoiceModal(${inv.id});" title="Edit Invoice" style="color:var(--accent-amber);">
+                                    <i data-lucide="edit-3" style="width:12px; height:12px;"></i> Edit
+                                </button>
+                                <button class="btn btn-sm btn-secondary" onclick="viewInvoicePdf(${inv.id}, '${inv.invoice_number}')">
+                                    <i data-lucide="printer" style="width:12px; height:12px;"></i> View PDF
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `).join('');
