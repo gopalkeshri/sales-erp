@@ -334,6 +334,50 @@ class Setting extends Model
                 'type' => 'string',
                 'description' => 'Recipient email for critical system alerts and digests',
             ],
+
+            // Cashfree Payment Gateway
+            [
+                'key' => 'cashfree_enabled',
+                'value' => '0',
+                'group' => 'cashfree',
+                'type' => 'boolean',
+                'description' => 'Enable or disable Cashfree online payment gateway collection',
+            ],
+            [
+                'key' => 'cashfree_environment',
+                'value' => 'sandbox',
+                'group' => 'cashfree',
+                'type' => 'string',
+                'description' => 'Cashfree operating mode (sandbox or production)',
+            ],
+            [
+                'key' => 'cashfree_app_id',
+                'value' => '',
+                'group' => 'cashfree',
+                'type' => 'string',
+                'description' => 'Cashfree Merchant App ID / Client ID',
+            ],
+            [
+                'key' => 'cashfree_secret_key',
+                'value' => '',
+                'group' => 'cashfree',
+                'type' => 'string',
+                'description' => 'Cashfree Merchant Secret Key / Client Secret',
+            ],
+            [
+                'key' => 'cashfree_api_version',
+                'value' => '2023-08-01',
+                'group' => 'cashfree',
+                'type' => 'string',
+                'description' => 'Cashfree PG REST API Version',
+            ],
+            [
+                'key' => 'cashfree_webhook_secret',
+                'value' => '',
+                'group' => 'cashfree',
+                'type' => 'string',
+                'description' => 'Cashfree Webhook Signature Secret Key',
+            ],
         ];
     }
 

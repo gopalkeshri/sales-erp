@@ -76,7 +76,7 @@ return new class extends Migration
             $table->unsignedBigInteger('invoice_id');
             $table->date('payment_date');
             $table->decimal('amount', 15, 2);
-            $table->enum('payment_method', ['cash', 'bank_transfer', 'check', 'credit_card', 'upi', 'other']);
+            $table->enum('payment_method', ['cash', 'bank_transfer', 'check', 'credit_card', 'upi', 'cashfree', 'other']);
             $table->string('reference_number', 100)->nullable();
             $table->text('notes')->nullable();
             $table->unsignedBigInteger('created_by')->nullable();

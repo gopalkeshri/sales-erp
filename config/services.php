@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'cashfree' => [
+        'app_id' => env('CASHFREE_APP_ID', ''),
+        'secret_key' => env('CASHFREE_SECRET_KEY', ''),
+        'environment' => env('CASHFREE_ENV', 'sandbox'),
+        'api_version' => env('CASHFREE_API_VERSION', '2023-08-01'),
+        'webhook_secret' => env('CASHFREE_WEBHOOK_SECRET', ''),
+    ],
+
 ];

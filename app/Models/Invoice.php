@@ -97,6 +97,11 @@ class Invoice extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function cashfreeOrders()
+    {
+        return $this->hasMany(CashfreeOrder::class);
+    }
+
     public function recalculatePaymentStatus(): void
     {
         $paid = (float) $this->payments()->sum('amount');

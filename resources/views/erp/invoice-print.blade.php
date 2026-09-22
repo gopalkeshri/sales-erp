@@ -326,6 +326,12 @@
             <span style="font-size: 12px; color: #94a3b8;">{{ $invoice->invoice_number }} ({{ $invoice->items->count() }} Line Items)</span>
         </div>
         <div style="display:flex; gap:8px;">
+            @if(($invoice->balance_due ?? 0) > 0)
+            <a href="/pay/invoice/{{ $invoice->id }}" target="_blank" class="btn" style="background: linear-gradient(135deg, #f59e0b 0%, #ec4899 100%); color: #ffffff; box-shadow: 0 2px 8px rgba(236,72,153,0.4);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                Pay Online (Cashfree)
+            </a>
+            @endif
             <button type="button" class="btn btn-secondary" onclick="window.close()">Close Window</button>
             <button type="button" class="btn btn-primary" onclick="window.print()">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
@@ -557,6 +563,11 @@
                     <div><strong>Account No:</strong> <span class="mono font-extrabold">{{ $company['bank_account_no'] }}</span> | <strong>IFSC:</strong> <span class="mono font-bold" style="color:#0284c7;">{{ $company['bank_ifsc'] }}</span></div>
                     <div><strong>Branch:</strong> {{ $company['bank_branch'] }}</div>
                     <div style="margin-top: 2px;"><strong>UPI VPA ID:</strong> <code class="mono" style="color: #0369a1; font-weight: 700;">{{ $company['upi_id'] }}</code></div>
+                    @if(($invoice->balance_due ?? 0) > 0)
+                    <div style="margin-top: 3px; font-size: 9.5px; color: #64748b;">
+                        <strong>Pay Online (Cashfree PG):</strong> <span class="mono" style="color: #0284c7; font-weight: 700;">{{ url('/pay/invoice/' . $invoice->id) }}</span>
+                    </div>
+                    @endif
                 </div>
                 <div style="text-align: right; display: flex; flex-direction: column; justify-content: space-between;">
                     <div style="font-size: 9.5px; color: #64748b; text-transform: uppercase;">For {{ $company['name'] }}</div>

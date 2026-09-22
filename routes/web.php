@@ -3,6 +3,11 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Web\WebAuthController;
 use App\Http\Controllers\Web\SalesErpController;
+use App\Http\Controllers\Web\CashfreeWebController;
+
+// Public Cashfree Customer Payment & Return Routes
+Route::get('/pay/invoice/{id}', [CashfreeWebController::class, 'showPublicPaymentPage'])->name('cashfree.pay');
+Route::get('/cashfree/return', [CashfreeWebController::class, 'paymentReturn'])->name('cashfree.return');
 
 // Guest Authentication Routes
 Route::middleware('guest')->group(function () {

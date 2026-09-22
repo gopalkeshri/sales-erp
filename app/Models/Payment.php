@@ -14,7 +14,9 @@ class Payment extends Model
         'payment_date',
         'amount',
         'payment_method',
+        'cashfree_order_id',
         'reference_number',
+        'transaction_id',
         'notes',
         'created_by',
     ];
@@ -35,5 +37,10 @@ class Payment extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function cashfreeOrder()
+    {
+        return $this->belongsTo(CashfreeOrder::class, 'cashfree_order_id', 'order_id');
     }
 }

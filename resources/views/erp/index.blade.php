@@ -23,6 +23,9 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <!-- Cashfree Web Checkout SDK v3 -->
+    <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+
     <style>
         :root {
             --primary: #6366f1;
@@ -2152,8 +2155,11 @@
                                                 <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i> Edit
                                             </button>
                                             @if($inv->balance_due > 0)
-                                            <button class="btn btn-sm btn-success" onclick="openPaymentModal({{ $inv->id }}, '{{ $inv->invoice_number }}', {{ $inv->balance_due }})" title="Record Payment">
-                                                <i data-lucide="credit-card" style="width: 14px; height: 14px;"></i> Pay
+                                            <button class="btn btn-sm" onclick="openCashfreeModal({{ $inv->id }}, '{{ $inv->invoice_number }}', {{ $inv->balance_due }}, '{{ addslashes($inv->customer->company_name ?? '') }}', '{{ addslashes($inv->customer->phone ?? '') }}', '{{ addslashes($inv->customer->email ?? '') }}')" title="Collect Online via Cashfree Payment Gateway" style="background: linear-gradient(135deg, #f59e0b 0%, #ec4899 100%); color: #ffffff; border: none; font-weight: 700; box-shadow: 0 2px 6px rgba(236, 72, 153, 0.3);">
+                                                <i data-lucide="zap" style="width: 14px; height: 14px;"></i> Cashfree Pay
+                                            </button>
+                                            <button class="btn btn-sm btn-success" onclick="openPaymentModal({{ $inv->id }}, '{{ $inv->invoice_number }}', {{ $inv->balance_due }})" title="Record Offline Payment Receipt">
+                                                <i data-lucide="credit-card" style="width: 14px; height: 14px;"></i> Offline Pay
                                             </button>
                                             @endif
                                             <button class="btn btn-sm btn-secondary" onclick="viewInvoicePdf({{ $inv->id }}, '{{ $inv->invoice_number }}')" title="Preview Indian GST Tax Invoice">
@@ -2802,6 +2808,10 @@
                                 <i data-lucide="landmark" style="width: 16px; height: 16px; color: #10b981;"></i>
                                 <span>Banking & GST</span>
                             </button>
+                            <button type="button" class="settings-nav-btn" id="btn-subnav-cashfree" onclick="switchSettingsSubSection('cashfree')">
+                                <i data-lucide="credit-card" style="width: 16px; height: 16px; color: #f59e0b;"></i>
+                                <span>Cashfree Gateway</span>
+                            </button>
                             <button type="button" class="settings-nav-btn" id="btn-subnav-localization" onclick="switchSettingsSubSection('localization')">
                                 <i data-lucide="globe-2" style="width: 16px; height: 16px; color: #22d3ee;"></i>
                                 <span>Localization & Currency</span>
@@ -2942,6 +2952,92 @@
                                             <label class="form-label">UPI VPA Handle</label>
                                             <input type="text" name="upi_id" id="set_upi_id" class="form-control" value="{{ $settings['upi_id'] ?? 'apexsolutions@okhdfcbank' }}" placeholder="name@bank">
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SECTION: Cashfree Payment Gateway -->
+                            <div id="settings-section-cashfree" class="settings-section">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <div class="card-title">
+                                            <i data-lucide="credit-card" style="color: #f59e0b;"></i>
+                                            Cashfree Payment Gateway Integration
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <span id="cashfreeConnBadge" class="badge badge-secondary" style="font-size: 11px;">
+                                                <i data-lucide="radio" style="width: 12px; height: 12px;"></i> Ready
+                                            </span>
+                                            <button type="button" class="btn btn-sm btn-secondary" onclick="testCashfreeConnection()" id="btnTestCashfree" style="color: #38bdf8; border-color: rgba(56, 189, 248, 0.3);">
+                                                <i data-lucide="activity" style="width: 13px; height: 13px;"></i> Test Connection
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; gap: 14px;">
+                                        <div style="width: 40px; height: 40px; border-radius: 8px; background: linear-gradient(135deg, #f59e0b 0%, #ec4899 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 18px; flex-shrink: 0;">
+                                            CF
+                                        </div>
+                                        <div style="font-size: 12px; color: #cbd5e1; line-height: 1.4;">
+                                            <strong style="color: #ffffff;">Cashfree Payments India</strong> allows collection of invoice dues via UPI (GPay, PhonePe, Paytm, BHIM), NetBanking across 50+ banks, Credit & Debit Cards (Visa, Mastercard, RuPay), and Wallets with instant reconciliation.
+                                        </div>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Gateway Status</label>
+                                            <select name="cashfree_enabled" id="set_cashfree_enabled" class="form-control">
+                                                <option value="1" {{ ($settings['cashfree_enabled'] ?? '0') == '1' ? 'selected' : '' }}>Enabled (Accept Online Payments)</option>
+                                                <option value="0" {{ ($settings['cashfree_enabled'] ?? '0') != '1' ? 'selected' : '' }}>Disabled (Offline Settlement Only)</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Environment Mode</label>
+                                            <select name="cashfree_environment" id="set_cashfree_environment" class="form-control">
+                                                <option value="sandbox" {{ ($settings['cashfree_environment'] ?? 'sandbox') === 'sandbox' ? 'selected' : '' }}>Sandbox / Test Mode (Simulated Payments)</option>
+                                                <option value="production" {{ ($settings['cashfree_environment'] ?? '') === 'production' ? 'selected' : '' }}>Production / Live Mode (Real Banking Settlement)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Merchant App ID / Client ID <span style="color: #fb7185;">*</span></label>
+                                            <input type="text" name="cashfree_app_id" id="set_cashfree_app_id" class="form-control mono" value="{{ $settings['cashfree_app_id'] ?? '' }}" placeholder="e.g. TEST1001928374...">
+                                            <small style="font-size: 11px; color: #64748b; margin-top: 4px; display: block;">Found in your Cashfree Merchant Dashboard under Developers &gt; API Keys.</small>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Merchant Secret Key / Client Secret <span style="color: #fb7185;">*</span></label>
+                                            <div style="position: relative;">
+                                                <input type="password" name="cashfree_secret_key" id="set_cashfree_secret_key" class="form-control mono" value="{{ $settings['cashfree_secret_key'] ?? '' }}" placeholder="e.g. cfsk_ma_test_..." style="padding-right: 40px;">
+                                                <button type="button" onclick="togglePasswordVisibility('set_cashfree_secret_key', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; cursor: pointer; padding: 4px;">
+                                                    <i data-lucide="eye" style="width: 16px; height: 16px;"></i>
+                                                </button>
+                                            </div>
+                                            <small style="font-size: 11px; color: #64748b; margin-top: 4px; display: block;">Encrypted and stored securely in ERP database / .env.</small>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Cashfree REST API Version</label>
+                                            <input type="text" name="cashfree_api_version" id="set_cashfree_api_version" class="form-control mono" value="{{ $settings['cashfree_api_version'] ?? '2023-08-01' }}" placeholder="2023-08-01">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Webhook Secret (Optional)</label>
+                                            <input type="password" name="cashfree_webhook_secret" id="set_cashfree_webhook_secret" class="form-control mono" value="{{ $settings['cashfree_webhook_secret'] ?? '' }}" placeholder="Optional webhook verification secret">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group" style="margin-top: 10px;">
+                                        <label class="form-label">ERP Webhook Notification URL (Notify URL)</label>
+                                        <div style="display: flex; gap: 8px;">
+                                            <input type="text" id="cashfreeWebhookUrl" class="form-control mono" value="{{ url('/api/cashfree/webhook') }}" readonly style="background: rgba(15, 23, 42, 0.9); color: #38bdf8;">
+                                            <button type="button" class="btn btn-secondary" onclick="copyCashfreeWebhookUrl()" title="Copy Webhook Endpoint" style="flex-shrink: 0;">
+                                                <i data-lucide="copy" style="width: 14px; height: 14px;"></i> Copy URL
+                                            </button>
+                                        </div>
+                                        <small style="font-size: 11px; color: #64748b; margin-top: 4px; display: block;">Paste this URL in Cashfree Dashboard &gt; Developers &gt; Webhooks to enable instant asynchronous payment status sync.</small>
                                     </div>
                                 </div>
                             </div>
@@ -3890,6 +3986,73 @@
                     <button type="button" class="btn btn-secondary" onclick="closeModal('editInvoiceModal')">Cancel</button>
                     <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);">
                         <i data-lucide="check" style="width: 15px; height: 15px;"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: Cashfree Online Payment Gateway Modal -->
+    <div id="cashfreePaymentModal" class="modal-backdrop">
+        <div class="modal-box" style="max-width: 540px;">
+            <div class="modal-header">
+                <div class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, #f59e0b 0%, #ec4899 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 900; font-size: 13px;">
+                        CF
+                    </div>
+                    <span>Cashfree Online Gateway Checkout</span>
+                </div>
+                <button onclick="closeModal('cashfreePaymentModal')" style="background:none; border:none; color:#94a3b8; cursor:pointer;"><i data-lucide="x"></i></button>
+            </div>
+            <form onsubmit="handleAdminCashfreePayment(event)">
+                <input type="hidden" id="cf_modal_invoice_id">
+                <div class="modal-body">
+                    <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(236, 72, 153, 0.12) 100%); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 700;">Invoice Reference</div>
+                            <div id="cf_modal_invoice_num" style="font-size: 15px; font-weight: 800; color: #ffffff;" class="mono">INV-0000</div>
+                            <div id="cf_modal_customer_name" style="font-size: 12px; color: #cbd5e1; margin-top: 2px;">Customer Name</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 11px; text-transform: uppercase; color: #94a3b8; font-weight: 700;">Balance Due</div>
+                            <div id="cf_modal_balance_display" style="font-size: 18px; font-weight: 900; color: #fb7185;" class="mono">₹0.00</div>
+                        </div>
+                    </div>
+
+                    <div id="cf_modal_alert" style="display: none; padding: 10px 14px; border-radius: 8px; font-size: 12px; margin-bottom: 14px;"></div>
+
+                    <div class="form-group">
+                        <label class="form-label">Payment Amount ({{ $settings['currency_symbol'] ?? '₹' }}) <span style="color: #fb7185;">*</span></label>
+                        <input type="number" step="0.01" min="1" id="cf_modal_amount" class="form-control mono" required>
+                        <small style="font-size: 11px; color: #64748b; margin-top: 3px; display: block;">Supports partial amount or full outstanding balance.</small>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Customer Mobile Number</label>
+                            <input type="tel" id="cf_modal_phone" class="form-control mono" placeholder="10-digit mobile" pattern="[0-9]{10}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Customer Email Address</label>
+                            <input type="email" id="cf_modal_email" class="form-control" placeholder="billing@customer.com">
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 12px 14px; margin-top: 6px;">
+                        <div style="font-size: 11.5px; font-weight: 700; color: #e2e8f0; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                            <i data-lucide="shield-check" style="width: 14px; height: 14px; color: #34d399;"></i>
+                            Supported Payment Channels
+                        </div>
+                        <div style="font-size: 11px; color: #94a3b8; line-height: 1.5;">
+                            Cashfree Modal opens instantly with <strong>UPI (GPay / PhonePe / Paytm / QR)</strong>, <strong>Credit &amp; Debit Cards</strong>, and <strong>NetBanking (50+ Banks)</strong>. Once verified, invoice balance reconciles automatically.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('cashfreePaymentModal')">Cancel</button>
+                    <button type="submit" id="btnCfSubmit" class="btn" style="background: linear-gradient(135deg, #f59e0b 0%, #ec4899 100%); color: #ffffff; font-weight: 800; border: none; box-shadow: 0 4px 14px rgba(236, 72, 153, 0.35);">
+                        <i data-lucide="zap" style="width: 15px; height: 15px;"></i>
+                        <span id="btnCfSubmitText">Open Cashfree Checkout</span>
                     </button>
                 </div>
             </form>
@@ -5769,6 +5932,247 @@
             document.getElementById('payment_amount').value = balanceDue;
             openModal('recordPaymentModal');
         }
+
+        // 10.1 Cashfree Gateway Functions
+        let cfSdkInstance = null;
+        function getCashfreeInstance() {
+            if (!cfSdkInstance && window.Cashfree) {
+                const env = document.getElementById('set_cashfree_environment') 
+                    ? document.getElementById('set_cashfree_environment').value 
+                    : "{{ $settings['cashfree_environment'] ?? 'sandbox' }}";
+                cfSdkInstance = window.Cashfree({
+                    mode: env.toLowerCase() === 'production' ? 'production' : 'sandbox'
+                });
+            }
+            return cfSdkInstance;
+        }
+
+        function openCashfreeModal(invoiceId, invoiceNum, balanceDue, customerName, phone, email) {
+            document.getElementById('cf_modal_invoice_id').value = invoiceId;
+            document.getElementById('cf_modal_invoice_num').innerText = invoiceNum;
+            document.getElementById('cf_modal_customer_name').innerText = customerName || 'Customer';
+            const currencySym = "{{ $settings['currency_symbol'] ?? '₹' }}";
+            document.getElementById('cf_modal_balance_display').innerText = currencySym + parseFloat(balanceDue).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+            document.getElementById('cf_modal_amount').value = parseFloat(balanceDue).toFixed(2);
+            document.getElementById('cf_modal_amount').max = parseFloat(balanceDue).toFixed(2);
+            document.getElementById('cf_modal_phone').value = phone || '';
+            document.getElementById('cf_modal_email').value = email || '';
+
+            const alertBox = document.getElementById('cf_modal_alert');
+            alertBox.style.display = 'none';
+
+            const btn = document.getElementById('btnCfSubmit');
+            btn.disabled = false;
+            document.getElementById('btnCfSubmitText').innerText = 'Open Cashfree Checkout';
+
+            openModal('cashfreePaymentModal');
+        }
+
+        async function handleAdminCashfreePayment(e) {
+            e.preventDefault();
+            const invId = document.getElementById('cf_modal_invoice_id').value;
+            const amount = parseFloat(document.getElementById('cf_modal_amount').value);
+            const phone = document.getElementById('cf_modal_phone').value.trim();
+            const email = document.getElementById('cf_modal_email').value.trim();
+
+            const alertBox = document.getElementById('cf_modal_alert');
+            alertBox.style.display = 'none';
+
+            if (isNaN(amount) || amount <= 0) {
+                alertBox.className = 'alert-box alert-error';
+                alertBox.innerText = 'Please specify a valid payment amount.';
+                alertBox.style.display = 'block';
+                return;
+            }
+
+            const btn = document.getElementById('btnCfSubmit');
+            const btnText = document.getElementById('btnCfSubmitText');
+            btn.disabled = true;
+            btnText.innerText = 'Creating Cashfree Order...';
+
+            try {
+                // 1. Create order
+                const res = await fetch(`/api/invoices/${invId}/cashfree/order`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        amount: amount,
+                        customer_phone: phone,
+                        customer_email: email
+                    })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok || data.status !== 'success') {
+                    throw new Error(data.message || 'Failed to initialize Cashfree session.');
+                }
+
+                btnText.innerText = 'Launching Cashfree Modal...';
+
+                // 2. Launch Cashfree SDK Checkout in _modal mode
+                const cf = window.Cashfree ? window.Cashfree({
+                    mode: (data.environment || 'sandbox').toLowerCase() === 'production' ? 'production' : 'sandbox'
+                }) : getCashfreeInstance();
+
+                if (!cf) {
+                    throw new Error('Cashfree SDK is not loaded. Please verify your internet connection.');
+                }
+
+                cf.checkout({
+                    paymentSessionId: data.payment_session_id,
+                    redirectTarget: "_modal"
+                }).then(async (result) => {
+                    if (result.error) {
+                        btn.disabled = false;
+                        btnText.innerText = 'Open Cashfree Checkout';
+                        alertBox.style.background = 'rgba(244, 63, 94, 0.15)';
+                        alertBox.style.color = '#fda4af';
+                        alertBox.style.border = '1px solid rgba(244, 63, 94, 0.3)';
+                        alertBox.innerText = 'Checkout error or closed: ' + (result.error.message || 'Payment cancelled');
+                        alertBox.style.display = 'block';
+                        return;
+                    }
+
+                    if (result.redirect) {
+                        btnText.innerText = 'Redirecting to Banking Portal...';
+                        return;
+                    }
+
+                    if (result.paymentDetails) {
+                        // 3. Verify on server
+                        btnText.innerText = 'Verifying Settlement...';
+                        const verifyRes = await fetch(`/api/invoices/${invId}/cashfree/verify`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                order_id: data.order_id
+                            })
+                        });
+
+                        const verifyData = await verifyRes.json();
+                        if (verifyData.paid) {
+                            showToast('Payment verified successfully via Cashfree! Balance updated.');
+                            closeModal('cashfreePaymentModal');
+                            reloadToTab('invoices');
+                        } else {
+                            alertBox.style.background = 'rgba(245, 158, 11, 0.15)';
+                            alertBox.style.color = '#fbbf24';
+                            alertBox.style.border = '1px solid rgba(245, 158, 11, 0.3)';
+                            alertBox.innerText = 'Payment status: ' + (verifyData.message || 'Pending confirmation.');
+                            alertBox.style.display = 'block';
+                            btn.disabled = false;
+                            btnText.innerText = 'Retry Verification';
+                        }
+                    }
+                });
+
+            } catch (err) {
+                console.error(err);
+                alertBox.style.background = 'rgba(244, 63, 94, 0.15)';
+                alertBox.style.color = '#fda4af';
+                alertBox.style.border = '1px solid rgba(244, 63, 94, 0.3)';
+                alertBox.innerText = err.message || 'Error occurred connecting to Cashfree.';
+                alertBox.style.display = 'block';
+                btn.disabled = false;
+                btnText.innerText = 'Open Cashfree Checkout';
+            }
+        }
+
+        async function testCashfreeConnection() {
+            const btn = document.getElementById('btnTestCashfree');
+            const badge = document.getElementById('cashfreeConnBadge');
+            const appId = document.getElementById('set_cashfree_app_id').value.trim();
+            const secretKey = document.getElementById('set_cashfree_secret_key').value.trim();
+            const env = document.getElementById('set_cashfree_environment').value;
+
+            if (!appId || !secretKey) {
+                showToast('Please enter both Cashfree App ID and Secret Key to test connection.', 'warning');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner" style="display:inline-block;width:12px;height:12px;border:2px solid #38bdf8;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;"></span> Testing...';
+            badge.className = 'badge badge-secondary';
+            badge.innerHTML = '<i data-lucide="radio" style="width:12px;height:12px;"></i> Testing...';
+            if (window.lucide) lucide.createIcons();
+
+            try {
+                const res = await fetch('/api/settings/cashfree/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        cashfree_app_id: appId,
+                        cashfree_secret_key: secretKey,
+                        cashfree_environment: env
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.connected) {
+                    badge.className = 'badge badge-success';
+                    badge.innerHTML = `<i data-lucide="check-circle-2" style="width:12px;height:12px;"></i> Connected (${data.latency_ms}ms)`;
+                    showToast(data.message || 'Cashfree Connection Successful!', 'success');
+                } else {
+                    badge.className = 'badge badge-danger';
+                    badge.innerHTML = '<i data-lucide="alert-circle" style="width:12px;height:12px;"></i> Auth Failed';
+                    showToast(data.message || 'Cashfree Connection Failed', 'error');
+                }
+            } catch (err) {
+                badge.className = 'badge badge-danger';
+                badge.innerHTML = '<i data-lucide="x-circle" style="width:12px;height:12px;"></i> Error';
+                showToast('Network error while testing Cashfree connection: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="activity" style="width: 13px; height: 13px;"></i> Test Connection';
+                if (window.lucide) lucide.createIcons();
+            }
+        }
+
+        function copyCashfreeWebhookUrl() {
+            const urlInput = document.getElementById('cashfreeWebhookUrl');
+            if (urlInput) {
+                urlInput.select();
+                navigator.clipboard.writeText(urlInput.value).then(() => {
+                    showToast('Cashfree Webhook URL copied to clipboard!', 'success');
+                }).catch(() => {
+                    document.execCommand('copy');
+                    showToast('Cashfree Webhook URL copied!', 'success');
+                });
+            }
+        }
+
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.innerHTML = '<i data-lucide="eye-off" style="width: 16px; height: 16px;"></i>';
+            } else {
+                input.type = 'password';
+                btn.innerHTML = '<i data-lucide="eye" style="width: 16px; height: 16px;"></i>';
+            }
+            if (window.lucide) lucide.createIcons();
+        }
+
+        window.openCashfreeModal = openCashfreeModal;
+        window.handleAdminCashfreePayment = handleAdminCashfreePayment;
+        window.testCashfreeConnection = testCashfreeConnection;
+        window.copyCashfreeWebhookUrl = copyCashfreeWebhookUrl;
+        window.togglePasswordVisibility = togglePasswordVisibility;
 
         async function submitPaymentForm(e) {
             e.preventDefault();

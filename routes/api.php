@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\SettingController;
+use App\Http\Controllers\Api\CashfreeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -141,6 +142,8 @@ Route::middleware(['auth:sanctum,web', 'activity.log'])->group(function () {
         Route::delete('/{id}', [InvoiceController::class, 'destroy']);
         Route::post('/{id}/send', [InvoiceController::class, 'send']);
         Route::post('/{id}/payment', [InvoiceController::class, 'recordPayment']);
+        Route::post('/{id}/cashfree/order', [CashfreeController::class, 'createOrder']);
+        Route::post('/{id}/cashfree/verify', [CashfreeController::class, 'verifyPayment']);
         Route::get('/{id}/pdf', [InvoiceController::class, 'pdfData']);
     });
 
@@ -202,5 +205,15 @@ Route::middleware(['auth:sanctum,web', 'activity.log'])->group(function () {
         Route::put('/', [SettingController::class, 'update']);
         Route::post('/reset', [SettingController::class, 'reset']);
         Route::post('/cache-clear', [SettingController::class, 'clearCache']);
+        Route::post('/cashfree/test', [CashfreeController::class, 'testConnection']);
     });
 });
+
+// 16. Cashfree Public Customer & Webhook Routes
+Route::prefix('public/invoices')->group(function () {
+    Route::post('/{id}/cashfree/order', [CashfreeController::class, 'publicCreateOrder']);
+    Route::post('/{id}/cashfree/verify', [CashfreeController::class, 'publicVerifyPayment']);
+});
+
+Route::post('/cashfree/webhook', [CashfreeController::class, 'webhook'])->name('api.cashfree.webhook');
+
