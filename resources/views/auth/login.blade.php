@@ -120,6 +120,53 @@
             font-weight: 500;
         }
 
+        .legal-entity {
+            margin-bottom: 16px;
+        }
+
+        .legal-company {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            color: #ffffff;
+            text-transform: uppercase;
+        }
+
+        .legal-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-top: 6px;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        .legal-contact {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .legal-contact a {
+            color: #94a3b8;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .legal-contact a:hover {
+            color: #22d3ee;
+        }
+
+        .brand-divider {
+            border: none;
+            border-top: 1px solid rgba(100, 116, 139, 0.5);
+            margin: 16px 0 18px;
+        }
+
         /* Glassmorphic Login Card */
         .login-card {
             background: var(--bg-card);
@@ -350,9 +397,15 @@
             <div class="brand-logo">
                 <i data-lucide="layers" style="width: 28px; height: 28px;"></i>
             </div>
-            <h1>Balaji Sales</h1>
-            <h3>Keshri gopal sarojkumar</h3>
-            <hr style="border: 1px solid #64748b; margin: 10px 0;">
+            <div class="legal-entity">
+                <div class="legal-company">BALAJI SALES</div>
+                <div class="legal-name">KESHRI GOPAL SAROJKUMAR</div>
+                <div class="legal-contact">
+                    <a href="mailto:gopalkeshri.dev@gmail.com">gopalkeshri.dev@gmail.com</a>
+                    <a href="tel:+919409643361">+91 94096 43361</a>
+                </div>
+            </div>
+            <hr class="brand-divider">
             <h1 class="brand-title">SALES ERP</h1>
             <p class="brand-subtitle">B2B Enterprise Revenue & Operations Portal</p>
         </div>
