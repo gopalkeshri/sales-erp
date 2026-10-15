@@ -350,6 +350,9 @@
             <div class="brand-logo">
                 <i data-lucide="layers" style="width: 28px; height: 28px;"></i>
             </div>
+            <h1>Balaji Sales</h1>
+            <h3>Keshri gopal sarojkumar</h3>
+            <hr style="border: 1px solid #64748b; margin: 10px 0;">
             <h1 class="brand-title">SALES ERP</h1>
             <p class="brand-subtitle">B2B Enterprise Revenue & Operations Portal</p>
         </div>
